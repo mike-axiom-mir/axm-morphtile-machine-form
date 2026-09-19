@@ -1,0 +1,1 @@
+{"envelope_version":"0.1","request_id":"form-box-1","goal":"Make a bounded box form","intent":{"shape":"box","name":"Proof box","size":[2,1,3]},"constraints":{"budget":64},"provenance":{"caller":"fixture"}}
