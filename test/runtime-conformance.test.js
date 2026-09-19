@@ -1,0 +1,67 @@
+const test = require("node:test");
+const assert = require("node:assert/strict");
+const path = require("node:path");
+
+const manifest = require("../machine.json");
+const composedRequest = require("../fixtures/request.composed.json");
+const baseRequest = require("../fixtures/request.box.json");
+const { run } = require("../src");
+
+const runtimePath = process.env.MORPHTILE_CORE_PATH;
+const runtimeCommit = process.env.MORPHTILE_COMMIT;
+const integrationTest = runtimePath ? test : test.skip;
+
+function requestFor(shape) {
+  return {
+    ...baseRequest,
+    request_id: `runtime-${shape}`,
+    intent: { shape, name: `runtime ${shape}` }
+  };
+}
+
+integrationTest("pinned MorphTile runtime accepts and compiles every emitted primitive", () => {
+  assert.equal(runtimeCommit, manifest.tested_against.commit, "CI runtime must match machine.json pin");
+  const MorphTile = require(path.resolve(runtimePath));
+  const expectedTriangles = {
+    box: 108,
+    sphere: 224,
+    cylinder: 56,
+    cone: 42,
+    wedge: 8,
+    plane: 2
+  };
+
+  for (const [shape, triangles] of Object.entries(expectedTriangles)) {
+    const result = run(requestFor(shape));
+    assert.equal(result.status, "CANDIDATE", shape);
+
+    const tile = MorphTile.createTile(result.candidate);
+    const validity = MorphTile.validateTile(tile);
+    assert.equal(validity.ok, true, `${shape}: ${validity.errors.join(", ")}`);
+
+    const compiled = MorphTile.compileMesh(tile);
+    assert.equal(compiled.hold, null, shape);
+    assert.equal(compiled.T.length, triangles, `${shape} triangle receipt drifted`);
+    assert.equal(compiled.P.length, triangles * 9, `${shape} position receipt drifted`);
+  }
+});
+
+integrationTest("pinned recipe compiler executes one composed Form Machine candidate with a bounded receipt", () => {
+  assert.equal(runtimeCommit, manifest.tested_against.commit, "CI runtime must match machine.json pin");
+  const MorphTile = require(path.resolve(runtimePath));
+
+  const result = run(composedRequest);
+  assert.equal(result.status, "CANDIDATE");
+  assert.equal(result.candidate.facets.mesh.type, "generated");
+  assert.equal(result.candidate.facets.mesh.data.generator, "recipe");
+
+  const tile = MorphTile.createTile(result.candidate);
+  const validity = MorphTile.validateTile(tile);
+  assert.equal(validity.ok, true, validity.errors.join(", "));
+
+  const compiled = MorphTile.compileMesh(tile);
+  assert.equal(compiled.hold, null);
+  assert.equal(compiled.recipe_parts, 3);
+  assert.equal(compiled.T.length, 348, "composed recipe triangle receipt drifted");
+  assert.equal(compiled.P.length, 348 * 9, "composed recipe position receipt drifted");
+});
