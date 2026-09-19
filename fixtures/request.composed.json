@@ -1,6 +1,7 @@
 {
-  "schema": "axm.morphtile.form-request/v0.1",
+  "envelope_version": "0.1",
   "request_id": "runtime-composed-form",
+  "goal": "Compile one bounded three-part composed form through the pinned MorphTile recipe runtime",
   "intent": {
     "name": "Runtime composed form proof",
     "recipe": [
@@ -9,7 +10,10 @@
       { "shape": "sphere", "size": [0.7, 0.7, 0.7], "pos": [1.1, 1.5, 0], "segments": 12 }
     ]
   },
-  "context": {
-    "requested_by": "form-machine-runtime-conformance"
+  "constraints": {
+    "budget": 64
+  },
+  "provenance": {
+    "caller": "runtime-conformance-fixture"
   }
 }
