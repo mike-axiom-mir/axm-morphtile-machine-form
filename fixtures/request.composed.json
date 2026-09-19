@@ -1,0 +1,15 @@
+{
+  "schema": "axm.morphtile.form-request/v0.1",
+  "request_id": "runtime-composed-form",
+  "intent": {
+    "name": "Runtime composed form proof",
+    "recipe": [
+      { "shape": "box", "size": [3, 0.3, 0.6], "pos": [0, 1.5, 0] },
+      { "shape": "cylinder", "size": [0.45, 1.5, 0.45], "pos": [-1.1, 0.75, 0], "segments": 12 },
+      { "shape": "sphere", "size": [0.7, 0.7, 0.7], "pos": [1.1, 1.5, 0], "segments": 12 }
+    ]
+  },
+  "context": {
+    "requested_by": "form-machine-runtime-conformance"
+  }
+}
