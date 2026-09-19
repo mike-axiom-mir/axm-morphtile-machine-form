@@ -27,4 +27,3 @@ Node 18 or later; zero runtime dependencies; no secrets or network required.
 - HELD: No arbitrary geometry generation, runtime MorphTile execution, or visual proof.
 
 This is a foundation, not evidence that MorphTile can autonomously manufacture MorphTile.
-

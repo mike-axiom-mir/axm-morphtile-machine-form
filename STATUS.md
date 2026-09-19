@@ -16,4 +16,3 @@ Structural mapping evidence. Visual quality is explicitly not verified.
 No arbitrary geometry generation, runtime MorphTile execution, or visual proof.
 
 No claim of autonomous creation, production readiness, canon, or visual quality is made.
-
