@@ -8,7 +8,7 @@ const {
   normalizePrimitiveParts,
   normalizePrimitiveRepeat
 } = require("./form-vocabulary");
-const MACHINE = { id: "axm.morphtile.machine.form", version: "0.5.0" };
+const MACHINE = { id: "axm.morphtile.machine.form", version: "0.4.0" };
 
 function holdResult(request, hold, suggested_missing_capability = null) {
   return result(request, MACHINE, "HOLD", {
