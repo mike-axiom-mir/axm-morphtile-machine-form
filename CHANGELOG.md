@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.4.0 — 2026-09-20
+
+- Added `intent.repeat` for bounded compact parametric repetition of one normalized primitive.
+- Bounded repeat count to 1..64 and required a finite non-zero translation step so identical same-location duplicates fail closed.
+- Unknown repeat fields and unknown repeated-part fields now HOLD instead of being silently ignored.
+- Compiles repeats into MorphTile's existing deterministic recipe loop/index expressions rather than materializing copied parts.
+- Made `recipe`, `parts`, and `repeat` mutually exclusive composition modes.
+- Advanced the exact runtime pin to MorphTile `4346df01ed18cd1336064f9323d7766ff4f6338a` and added an exact repeat runtime-conformance receipt.
+
 ## 0.3.0 — 2026-09-20
 
 - Added `intent.parts` for deterministic flat primitive composition using the existing MorphTile recipe substrate.
