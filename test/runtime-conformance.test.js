@@ -87,3 +87,34 @@ integrationTest("pinned recipe compiler executes normalized bounded parts with t
   assert.equal(compiled.T.length, 348, "bounded parts triangle receipt drifted");
   assert.equal(compiled.P.length, 348 * 9, "bounded parts position receipt drifted");
 });
+
+integrationTest("current pinned recipe compiler executes compact bounded repeats deterministically", () => {
+  assert.equal(runtimeCommit, manifest.tested_against.commit, "CI runtime must match machine.json pin");
+  const MorphTile = require(path.resolve(runtimePath));
+  const request = {
+    ...baseRequest,
+    request_id: "runtime-repeat",
+    intent: {
+      name: "runtime repeat",
+      repeat: {
+        count: 4,
+        step: [2, 1, 0],
+        part: { shape: "plane", size: [1, 1, 1], pos: [0, 0, 0] }
+      }
+    }
+  };
+
+  const first = run(request), second = run(request);
+  assert.equal(first.status, "CANDIDATE");
+  assert.deepEqual(first, second);
+
+  const tile = MorphTile.createTile(first.candidate);
+  const validity = MorphTile.validateTile(tile);
+  assert.equal(validity.ok, true, validity.errors.join(", "));
+
+  const compiled = MorphTile.compileMesh(tile);
+  assert.equal(compiled.hold, null);
+  assert.equal(compiled.recipe_parts, 4);
+  assert.equal(compiled.T.length, 8, "repeat recipe triangle receipt drifted");
+  assert.equal(compiled.P.length, 8 * 9, "repeat recipe position receipt drifted");
+});
