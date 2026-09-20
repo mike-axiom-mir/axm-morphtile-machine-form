@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.15.0 — 2026-09-21
+
+- Added a bounded repeat-distinctness rule so `step: [0,0,0]` may be used when an existing validated `with_step`, `rot_step`, `size_step`, or `scale_step` changes authored target state.
+- Reuses the existing repeat progression validators rather than exposing another progression grammar; malformed, no-op, wrong-target, non-positive, overflow, or single-placement progressions still HOLD.
+- Restores the exact authored base position before candidate emission, so the private validation-only translation never reaches MorphTile matter.
+- Added the missing `repeat.with_step` invariant that `count` must be at least 2, matching rotation/size/scale progression so an authored delta cannot be accepted when it can never affect a placement.
+- Reuses the same rule through standalone `intent.repeat` and repeat blocks inside `intent.compose`.
+- Added pinned-runtime proof that current MorphTile compiles a zero-translation repeat with bounded size + rotation progression into finite non-empty geometry.
+- Preserved the zero-translation HOLD when no bounded progression is present and made no visual-uniqueness claim for symmetric primitives or unused external-definition settings.
+
 ## 0.14.0 — 2026-09-20
 
 - Extended definition-instance `repeat.scale_step` with a bounded 3-vector form for deterministic anisotropic whole-form growth/shrink.
