@@ -11,7 +11,7 @@ const INTENT_KEYS = Object.freeze({
   repeat: new Set(["name", "repeat"]),
   instances: new Set(["name", "instances"])
 });
-const REPEAT_KEYS = new Set(["count", "step", "part"]);
+const REPEAT_KEYS = new Set(["count", "step", "part", "instance"]);
 const MAX_FLAT_PARTS = 64;
 const MAX_REPEAT_COUNT = 64;
 const MAX_DEFINITION_INSTANCES = 64;
@@ -136,50 +136,12 @@ function normalizePrimitiveParts(parts) {
   return { ok: true, data: normalized };
 }
 
-function normalizePrimitiveRepeat(repeat) {
-  if (!repeat || typeof repeat !== "object" || Array.isArray(repeat)) {
-    return hold("HOLD_FORM_REPEAT_INVALID", "repeat must be an object");
-  }
-
-  const unknown = Object.keys(repeat).filter((key) => !REPEAT_KEYS.has(key)).sort();
-  if (unknown.length) {
-    return hold("HOLD_FORM_PARAMETER_UNKNOWN", `repeat has unsupported field(s): ${unknown.join(", ")}`);
-  }
-
-  const count = boundedInteger(repeat.count, "repeat.count", 1, MAX_REPEAT_COUNT);
-  if (!count.ok) return count;
-
-  if (repeat.step === undefined) {
-    return hold("HOLD_FORM_REPEAT_INVALID", "repeat.step is required");
-  }
-  const step = vec3(repeat.step, "repeat.step");
-  if (!step.ok) return step;
-  if (step.value.every((x) => x === 0)) {
-    return hold("HOLD_FORM_REPEAT_INVALID", "repeat.step must move at least one axis; zero-step duplicates identical geometry");
-  }
-
-  const part = normalizePrimitivePart(repeat.part, "repeat.part");
-  if (!part.ok) return part;
-
-  const basePos = part.data.pos || [0, 0, 0];
-  const repeatedPart = { ...part.data };
-  repeatedPart.pos = basePos.map((base, axis) => {
-    const delta = step.value[axis];
-    return delta === 0 ? base : ["+", base, ["*", ["var", "i"], delta]];
-  });
-
-  return {
-    ok: true,
-    data: {
-      repeat: count.value,
-      as: "i",
-      body: [repeatedPart]
-    }
-  };
+function instanceLabel(index) {
+  return Number.isInteger(index) ? `instances[${index}]` : String(index || "instance");
 }
 
 function normalizeDefinitionInstance(instance, index) {
-  const label = `instances[${index}]`;
+  const label = instanceLabel(index);
   if (!instance || typeof instance !== "object" || Array.isArray(instance)) {
     return hold("HOLD_FORM_DEFINITION_INSTANCE_INVALID", `${label} must be an object`);
   }
@@ -253,6 +215,56 @@ function normalizeDefinitionInstances(instances) {
     normalized.push(item.data);
   }
   return { ok: true, data: normalized };
+}
+
+function normalizePrimitiveRepeat(repeat) {
+  if (!repeat || typeof repeat !== "object" || Array.isArray(repeat)) {
+    return hold("HOLD_FORM_REPEAT_INVALID", "repeat must be an object");
+  }
+
+  const unknown = Object.keys(repeat).filter((key) => !REPEAT_KEYS.has(key)).sort();
+  if (unknown.length) {
+    return hold("HOLD_FORM_PARAMETER_UNKNOWN", `repeat has unsupported field(s): ${unknown.join(", ")}`);
+  }
+
+  const count = boundedInteger(repeat.count, "repeat.count", 1, MAX_REPEAT_COUNT);
+  if (!count.ok) return count;
+
+  if (repeat.step === undefined) {
+    return hold("HOLD_FORM_REPEAT_INVALID", "repeat.step is required");
+  }
+  const step = vec3(repeat.step, "repeat.step");
+  if (!step.ok) return step;
+  if (step.value.every((x) => x === 0)) {
+    return hold("HOLD_FORM_REPEAT_INVALID", "repeat.step must move at least one axis; zero-step duplicates identical geometry");
+  }
+
+  const targetModes = ["part", "instance"].filter((key) => repeat[key] !== undefined);
+  if (targetModes.length !== 1) {
+    return hold("HOLD_FORM_REPEAT_INVALID", "repeat must provide exactly one target: part or instance");
+  }
+
+  const target = targetModes[0] === "part"
+    ? normalizePrimitivePart(repeat.part, "repeat.part")
+    : normalizeDefinitionInstance(repeat.instance, "repeat.instance");
+  if (!target.ok) return target;
+
+  const basePos = target.data.pos || [0, 0, 0];
+  const repeatedTarget = { ...target.data };
+  repeatedTarget.pos = basePos.map((base, axis) => {
+    const delta = step.value[axis];
+    return delta === 0 ? base : ["+", base, ["*", ["var", "i"], delta]];
+  });
+
+  return {
+    ok: true,
+    data: {
+      repeat: count.value,
+      as: "i",
+      body: [repeatedTarget]
+    },
+    target_kind: targetModes[0]
+  };
 }
 
 module.exports = {
