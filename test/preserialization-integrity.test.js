@@ -108,6 +108,18 @@ test("root request Proxy HOLDS without executing Proxy traps while deriving HOLD
   assert.equal(hold.path, "request");
 });
 
+test("revoked root request Proxy HOLDS before throwable array/reflection checks", () => {
+  const revoked = Proxy.revocable(
+    request("form-revoked-root-proxy-source-integrity", [{ shape: "box", size: [1, 1, 1] }]),
+    {}
+  );
+  revoked.revoke();
+
+  const out = run(revoked.proxy);
+  const hold = findHold(out, "HOLD_FORM_INPUT_NONPORTABLE_VALUE");
+  assert.equal(hold.path, "request");
+});
+
 test("non-finite caller recipe values HOLD instead of becoming null during result cloning", () => {
   const out = run(request("form-nonfinite-source-integrity", [
     { shape: "box", pos: [Number.POSITIVE_INFINITY, 0, 0] }
