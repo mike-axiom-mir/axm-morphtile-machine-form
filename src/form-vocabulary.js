@@ -2,6 +2,8 @@
 
 const PRIMITIVES = Object.freeze(["box", "sphere", "cylinder", "cone", "wedge", "plane"]);
 const RADIAL = new Set(["sphere", "cylinder", "cone"]);
+const PART_KEYS = new Set(["shape", "size", "pos", "rot", "segments", "taper", "sub"]);
+const MAX_FLAT_PARTS = 64;
 
 function hold(code, detail) {
   return { ok: false, hold: { code, detail } };
@@ -67,4 +69,35 @@ function normalizePrimitiveIntent(intent = {}) {
   return { ok: true, data };
 }
 
-module.exports = { PRIMITIVES, normalizePrimitiveIntent };
+function normalizePrimitivePart(part, index) {
+  if (!part || typeof part !== "object" || Array.isArray(part)) {
+    return hold("HOLD_FORM_COMPOSITION_INVALID", `parts[${index}] must be an object`);
+  }
+
+  const unknown = Object.keys(part).filter((key) => !PART_KEYS.has(key)).sort();
+  if (unknown.length) {
+    return hold("HOLD_FORM_PARAMETER_UNKNOWN", `parts[${index}] has unsupported field(s): ${unknown.join(", ")}`);
+  }
+
+  const normalized = normalizePrimitiveIntent(part);
+  if (!normalized.ok) {
+    return hold(normalized.hold.code, `parts[${index}]: ${normalized.hold.detail}`);
+  }
+  return normalized;
+}
+
+function normalizePrimitiveParts(parts) {
+  if (!Array.isArray(parts) || parts.length < 1 || parts.length > MAX_FLAT_PARTS) {
+    return hold("HOLD_FORM_COMPOSITION_INVALID", `parts must contain 1 to ${MAX_FLAT_PARTS} primitive parts`);
+  }
+
+  const normalized = [];
+  for (let i = 0; i < parts.length; i++) {
+    const part = normalizePrimitivePart(parts[i], i);
+    if (!part.ok) return part;
+    normalized.push(part.data);
+  }
+  return { ok: true, data: normalized };
+}
+
+module.exports = { PRIMITIVES, MAX_FLAT_PARTS, normalizePrimitiveIntent, normalizePrimitiveParts };
