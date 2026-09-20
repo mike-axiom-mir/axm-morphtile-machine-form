@@ -14,7 +14,7 @@ const {
   validateComposeIntentKeys,
   normalizeMixedComposition
 } = require("./mixed-composition");
-const MACHINE = { id: "axm.morphtile.machine.form", version: "0.7.0" };
+const MACHINE = { id: "axm.morphtile.machine.form", version: "0.8.0" };
 
 function holdResult(request, hold, suggested_missing_capability = null) {
   return result(request, MACHINE, "HOLD", {
@@ -58,7 +58,7 @@ function run(request) {
     const composed = normalizeMixedComposition(intent.compose);
     if (!composed.ok) return holdResult(request, composed.hold);
     mesh = { type: "generated", source: null, data: { generator: "recipe", vars: {}, parts: composed.data } };
-    check = `bounded mixed primitive/definition composition normalized into one MorphTile recipe (${composed.data.length} parts)`;
+    check = `bounded direct/pattern composition normalized into one MorphTile recipe (${composed.data.length} blocks / ${composed.placement_count} requested placements)`;
     if (composed.has_definitions) warnings.push({ code: "DEFINITION_RUNTIME_RESOLUTION_REQUIRED" });
   } else if (mode === "repeat") {
     const repeated = normalizePrimitiveRepeat(intent.repeat);
