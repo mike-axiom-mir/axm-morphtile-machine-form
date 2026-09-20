@@ -3,7 +3,7 @@
 - Foundation version: 0.5.0
 - State: CANDIDATE — EXACT-HEAD CI REQUIRED
 - Local test command: npm test
-- Pinned runtime target: MorphTile v0.4 at a579182ae585e5722ac87dd0cc8209963b18d000
+- Pinned runtime target: MorphTile v0.4 at b6b086edb70fd4657495fcf01cb9fcdedceafdaf
 - Envelope: provisional v0.1
 - Visual proof: none
 
@@ -25,7 +25,7 @@
 - `intent.repeat` can now compactly repeat either one primitive part or one bounded definition instance through the same existing MorphTile loop substrate.
 - Unknown fields, malformed references/settings/transforms, ambiguous repeat targets, oversized instance sets, and ambiguous simultaneous composition modes HOLD instead of being guessed.
 - Form Machine does not resolve or copy definition bodies. It emits references and states the runtime-resolution boundary explicitly.
-- Runtime conformance advances to current observed MorphTile main `a579182ae585e5722ac87dd0cc8209963b18d000` and tests real definition resolution, parametric `with` overrides, compact repeated definition use, exact geometry receipts, determinism, and the visible no-world HOLD.
+- Runtime conformance targets MorphTile `b6b086edb70fd4657495fcf01cb9fcdedceafdaf` and tests real definition resolution, parametric `with` overrides, compact repeated definition use, exact geometry receipts, determinism, and the visible no-world HOLD.
 
 ## Placement
 
