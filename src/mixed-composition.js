@@ -2,12 +2,15 @@
 
 const {
   normalizePrimitiveParts,
-  normalizeDefinitionInstances
+  normalizeDefinitionInstances,
+  normalizePrimitiveRepeat,
+  normalizeGrid
 } = require("./form-vocabulary");
 
-const COMPOSE_ITEM_KEYS = new Set(["part", "instance"]);
+const COMPOSE_ITEM_KEYS = new Set(["part", "instance", "repeat", "grid"]);
 const COMPOSE_INTENT_KEYS = new Set(["name", "compose"]);
 const MAX_COMPOSE_ITEMS = 64;
+const MAX_COMPOSE_PLACEMENTS = 64;
 
 function hold(code, detail) {
   return { ok: false, hold: { code, detail } };
@@ -28,6 +31,7 @@ function normalizeMixedComposition(items) {
 
   const normalized = [];
   let hasDefinitions = false;
+  let placementCount = 0;
 
   for (let i = 0; i < items.length; i++) {
     const item = items[i];
@@ -41,32 +45,62 @@ function normalizeMixedComposition(items) {
       return hold("HOLD_FORM_PARAMETER_UNKNOWN", `${label} has unsupported field(s): ${unknown.join(", ")}`);
     }
 
-    const modes = ["part", "instance"].filter((key) => item[key] !== undefined);
+    const modes = ["part", "instance", "repeat", "grid"].filter((key) => item[key] !== undefined);
     if (modes.length !== 1) {
-      return hold("HOLD_FORM_COMPOSITION_INVALID", `${label} must provide exactly one target: part or instance`);
+      return hold("HOLD_FORM_COMPOSITION_INVALID", `${label} must provide exactly one target: part, instance, repeat, or grid`);
     }
 
-    if (modes[0] === "part") {
+    const mode = modes[0];
+    let data;
+    let placements = 1;
+    let usesDefinition = false;
+
+    if (mode === "part") {
       const part = normalizePrimitiveParts([item.part]);
       if (!part.ok) return hold(part.hold.code, `${label}.part: ${part.hold.detail}`);
-      normalized.push(part.data[0]);
-    } else {
+      data = part.data[0];
+    } else if (mode === "instance") {
       const instance = normalizeDefinitionInstances([item.instance]);
       if (!instance.ok) return hold(instance.hold.code, `${label}.instance: ${instance.hold.detail}`);
-      normalized.push(instance.data[0]);
-      hasDefinitions = true;
+      data = instance.data[0];
+      usesDefinition = true;
+    } else if (mode === "repeat") {
+      const repeated = normalizePrimitiveRepeat(item.repeat);
+      if (!repeated.ok) return hold(repeated.hold.code, `${label}.repeat: ${repeated.hold.detail}`);
+      data = repeated.data;
+      placements = repeated.data.repeat;
+      usesDefinition = repeated.target_kind === "instance";
+    } else {
+      const grid = normalizeGrid(item.grid);
+      if (!grid.ok) return hold(grid.hold.code, `${label}.grid: ${grid.hold.detail}`);
+      data = grid.data;
+      placements = grid.total_instances;
+      usesDefinition = grid.target_kind === "instance";
     }
+
+    if (placementCount + placements > MAX_COMPOSE_PLACEMENTS) {
+      return hold(
+        "HOLD_FORM_COMPOSITION_INVALID",
+        `compose may request at most ${MAX_COMPOSE_PLACEMENTS} placements across direct, repeat, and grid items`
+      );
+    }
+
+    normalized.push(data);
+    placementCount += placements;
+    hasDefinitions ||= usesDefinition;
   }
 
   return {
     ok: true,
     data: normalized,
-    has_definitions: hasDefinitions
+    has_definitions: hasDefinitions,
+    placement_count: placementCount
   };
 }
 
 module.exports = {
   MAX_COMPOSE_ITEMS,
+  MAX_COMPOSE_PLACEMENTS,
   validateComposeIntentKeys,
   normalizeMixedComposition
 };

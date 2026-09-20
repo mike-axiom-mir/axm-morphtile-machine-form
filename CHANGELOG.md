@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.8.0 — 2026-09-20
+
+- Extended `intent.compose` so direct primitive/definition targets can be combined with the already-bounded repeat and grid patterns in one ordered recipe.
+- Reuses the existing repeat/grid normalizers rather than adding a second generic loop authoring surface.
+- Added a cumulative 64-placement budget across direct, repeat, and grid blocks so compact syntax cannot silently multiply into an unbounded request.
+- Added fail-closed checks for ambiguous block kinds and recursive/unknown compose fields.
+- Preserves `DEFINITION_RUNTIME_RESOLUTION_REQUIRED` when a definition is referenced through a patterned block.
+- Added pinned-runtime conformance for one direct plane + three repeated planes + a 2x2 grid compiling deterministically as eight recipe parts.
+- Kept recursive compose, arbitrary loop bodies, conditions, custom expressions, definition discovery, visual acceptance and CANON HELD.
+
+## 0.7.0 — 2026-09-20
+
+- Added `intent.compose` for bounded ordered mixing of normalized primitive parts and reusable definition instances in one MorphTile recipe.
+- Preserved definition runtime-resolution warnings and fail-closed handling for malformed, oversized, ambiguous or unknown composition fields.
+- Added exact runtime conformance for mixed primitive + definition recipe matter against MorphTile `ef2b3c6986aa1a333247feffc43a8443f17239d0`.
+- Aligned package/machine metadata before final exact-head verification.
+
 ## 0.6.0 — 2026-09-20
 
 - Added `intent.grid` for bounded deterministic axis-aligned 1D/2D/3D composition using one normalized primitive part or definition instance.
