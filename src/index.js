@@ -10,7 +10,7 @@ const {
   normalizeGrid,
   normalizeDefinitionInstances
 } = require("./form-vocabulary");
-const { normalizeRepeatWithScale } = require("./repeat-scale");
+const { normalizeRepeatWithDistinctness } = require("./repeat-distinctness");
 const {
   validateComposeIntentKeys,
   normalizeMixedComposition
@@ -89,7 +89,7 @@ function run(request) {
     check = `bounded direct/pattern composition normalized into one MorphTile recipe (${composed.data.length} blocks / ${composed.placement_count} requested placements)`;
     if (composed.has_definitions) warnings.push({ code: "DEFINITION_RUNTIME_RESOLUTION_REQUIRED" });
   } else if (mode === "repeat") {
-    const repeated = normalizeRepeatWithScale(intent.repeat);
+    const repeated = normalizeRepeatWithDistinctness(intent.repeat);
     if (!repeated.ok) return holdResult(request, repeated.hold);
     mesh = { type: "generated", source: null, data: { generator: "recipe", vars: {}, parts: [repeated.data] } };
     check = `bounded ${repeated.target_kind === "instance" ? "definition-instance" : "primitive"} repeat normalized into a compact MorphTile recipe (${repeated.data.repeat} instances)`;
