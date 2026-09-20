@@ -115,6 +115,9 @@ function normalizePrimitiveRepeat(repeat) {
   const count = boundedInteger(repeat.count, "repeat.count", 1, MAX_REPEAT_COUNT);
   if (!count.ok) return count;
 
+  if (repeat.step === undefined) {
+    return hold("HOLD_FORM_REPEAT_INVALID", "repeat.step is required");
+  }
   const step = vec3(repeat.step, "repeat.step");
   if (!step.ok) return step;
   if (step.value.every((x) => x === 0)) {
