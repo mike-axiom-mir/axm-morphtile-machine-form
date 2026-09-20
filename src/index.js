@@ -1,8 +1,8 @@
 "use strict";
 
 const { assertRequest, result } = require("./envelope");
-const { normalizePrimitiveIntent, normalizePrimitiveParts } = require("./form-vocabulary");
-const MACHINE = { id: "axm.morphtile.machine.form", version: "0.3.0" };
+const { normalizePrimitiveIntent, normalizePrimitiveParts, normalizePrimitiveRepeat } = require("./form-vocabulary");
+const MACHINE = { id: "axm.morphtile.machine.form", version: "0.4.0" };
 
 function holdResult(request, hold, suggested_missing_capability = null) {
   return result(request, MACHINE, "HOLD", {
@@ -14,11 +14,12 @@ function holdResult(request, hold, suggested_missing_capability = null) {
 function run(request) {
   assertRequest(request);
   const intent = request.intent || {};
+  const compositionModes = ["recipe", "parts", "repeat"].filter((key) => intent[key] !== undefined);
 
-  if (intent.recipe !== undefined && intent.parts !== undefined) {
+  if (compositionModes.length > 1) {
     return holdResult(request, {
       code: "HOLD_FORM_COMPOSITION_AMBIGUOUS",
-      detail: "Provide either recipe or parts, not both"
+      detail: `Provide only one composition mode: ${compositionModes.join(", ")}`
     });
   }
 
@@ -32,6 +33,11 @@ function run(request) {
     if (!parts.ok) return holdResult(request, parts.hold);
     mesh = { type: "generated", source: null, data: { generator: "recipe", vars: {}, parts: parts.data } };
     check = `bounded flat primitive composition normalized into a MorphTile recipe (${parts.data.length} parts)`;
+  } else if (intent.repeat !== undefined) {
+    const repeated = normalizePrimitiveRepeat(intent.repeat);
+    if (!repeated.ok) return holdResult(request, repeated.hold);
+    mesh = { type: "generated", source: null, data: { generator: "recipe", vars: {}, parts: [repeated.data] } };
+    check = `bounded primitive repeat normalized into a compact MorphTile recipe (${repeated.data.repeat} instances)`;
   } else {
     const primitive = normalizePrimitiveIntent(intent);
     if (!primitive.ok) {
