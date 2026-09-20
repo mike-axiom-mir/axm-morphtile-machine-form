@@ -50,8 +50,9 @@ function clonePortableValue(value, path = "value", stack = new Set()) {
 
   // A JavaScript Proxy can execute caller-controlled traps from operations that
   // descriptor-safe inspection otherwise needs (prototype, own keys, property
-  // descriptors). Detect it before any of those reflective operations so the
-  // source-integrity preflight itself cannot become an execution surface.
+  // descriptors, and even Array.isArray for a revoked Proxy). Detect it before
+  // any such reflective operation so the source-integrity preflight itself
+  // cannot become an execution or uncaught-throw surface.
   if (isProxy(value)) {
     nonportable(path, "Form input uses a Proxy object whose traps could execute during authored-data inspection.");
   }
@@ -126,8 +127,9 @@ function clonePortableValue(value, path = "value", stack = new Set()) {
 }
 
 function safeRequestId(request) {
-  if (!request || typeof request !== "object" || Array.isArray(request)) return null;
+  if (!request || typeof request !== "object") return null;
   if (isProxy(request)) return null;
+  if (Array.isArray(request)) return null;
   const descriptor = Object.getOwnPropertyDescriptor(request, "request_id");
   if (!descriptor || !("value" in descriptor) || typeof descriptor.value !== "string" || !descriptor.value) return null;
   return descriptor.value;
