@@ -178,7 +178,7 @@ function normalizeDefinitionInstance(instance, index) {
     if (keys.length > MAX_INSTANCE_SETTINGS) {
       return hold("HOLD_FORM_DEFINITION_INSTANCE_INVALID", `${label}.with may contain at most ${MAX_INSTANCE_SETTINGS} settings`);
     }
-    const settings = {};
+    const settings = Object.create(null);
     for (const key of keys) {
       if (!SETTING_NAME.test(key)) {
         return hold("HOLD_FORM_DEFINITION_INSTANCE_INVALID", `${label}.with contains invalid setting name: ${key}`);

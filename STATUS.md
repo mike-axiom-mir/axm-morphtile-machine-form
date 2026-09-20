@@ -3,7 +3,7 @@
 - Foundation version: 0.11.0
 - State: CANDIDATE — EXACT-HEAD CI + INDEPENDENT REVIEW REQUIRED
 - Local test command: npm test
-- Pinned runtime target: MorphTile v0.4 at 429a344f7d9333bef01cf9de1c292c3af09abec2
+- Pinned runtime target: MorphTile v0.4 at 63a65c70bb702cb9ac979ec04233ffaa7ed5d179
 - Envelope: provisional v0.1
 - Visual proof: none
 
@@ -25,7 +25,8 @@
 - Each stepped setting compiles to `base + i * delta` using the fixed repeat-loop index; callers still do not author arbitrary expression trees.
 - Generated repeat/grid/progression expressions are checked over their complete bounded domain before emission so non-finite expansions HOLD in Form Machine.
 - The complete caller-authored request is descriptor-safe preflighted before normalization/JSON transport; non-portable values, accessors, serialization hooks and live/revoked Proxies fail closed without caller execution.
-- The exact integrated receiver proof targets MorphTile `429a344f7d9333bef01cf9de1c292c3af09abec2`, including `HOLD_RECIPE_NONFINITE_VALUE` and `HOLD_MESH_NONFINITE_VALUE` runtime boundaries.
+- Definition-instance `with` settings are normalized into a prototype-independent dictionary so authored own keys such as `__proto__`, `constructor`, and `toString` remain data rather than host-language prototype behavior.
+- The exact integrated receiver proof targets MorphTile `63a65c70bb702cb9ac979ec04233ffaa7ed5d179`, including `HOLD_RECIPE_NONFINITE_VALUE`, `HOLD_MESH_NONFINITE_VALUE`, and exact own-key definition-setting runtime semantics.
 
 ## 0.11.0 candidate — bounded repeat rotation progression
 
@@ -45,17 +46,21 @@ This candidate adds optional `repeat.rot_step` for the existing bounded repeat r
 
 The candidate does not add arbitrary caller-authored transform expressions, custom loop variables, recursive bodies, radial/trigonometric placement, grid-axis rotation progression or autonomous geometry invention.
 
+## Current candidate repair — exact definition-setting own-key identity
+
+MorphTile core now preserves exact authored recipe namespace keys. Form's definition-instance normalizer still rebuilt `instance.with` into a normal JavaScript object, so an authored own `__proto__` setting could be consumed by host prototype semantics before it ever reached MorphTile.
+
+This candidate changes only that producer-side setting dictionary to a prototype-independent object. The regression proves `__proto__`, `constructor`, and `toString` remain exact own numeric settings, and the pinned-runtime integration proves a Form-authored `__proto__` override reaches current MorphTile core and changes compiled geometry relative to the baseline setting.
+
 ## Placement
 
-This rule belongs in Form Machine, not MorphTile core. MorphTile already has the universal ingredients: expression-valued recipe transforms, deterministic repeat-loop variables, transform application and runtime mesh compilation. The missing capability was a bounded creation-side vocabulary rule that converts a repeated ordinary geometry pattern into deterministic MorphTile matter.
+The repeat-rotation rule and the current own-key normalization repair belong in Form Machine, not MorphTile core. MorphTile already supplies the universal runtime ingredients and current core `63a65c70bb702cb9ac979ec04233ffaa7ed5d179` independently preserves exact authored recipe own-key identity. The remaining loss occurred during Form's producer-side normalization before portable recipe matter reached that receiver.
 
 No new universal MorphTile representation/runtime primitive was found in this activation.
 
 ## Evidence boundary
 
-The candidate earns technical validity only if GitHub Actions is green on its exact head against the pinned MorphTile runtime. The new tests cover primitive and definition-instance rotation progression, compose reuse, malformed/no-op/single-count/overflow HOLDs, preservation of unknown-field fail-closed behavior, and real pinned-runtime execution where generated turning geometry differs from the equivalent non-turning repeat while preserving bounded part/triangle counts.
-
-Independent Verification should replay the final exact candidate head before Director integration. Visual/aesthetic quality remains outside these receipts.
+The candidate earns technical validity only if GitHub Actions is green on its exact head against the pinned MorphTile runtime. The own-key regression was established red before the repair and the repaired candidate must pass both the producer-only identity proof and the real current-core compile proof. Independent Verification should replay the final exact candidate head before Director integration. Visual/aesthetic quality remains outside these receipts.
 
 ## HELD / open
 
