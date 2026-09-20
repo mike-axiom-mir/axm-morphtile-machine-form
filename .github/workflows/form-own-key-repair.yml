@@ -1,0 +1,45 @@
+name: bounded-form-own-key-repair
+
+on:
+  push:
+    branches:
+      - form-own-key-settings-20260920
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: form-own-key-settings-20260920
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Apply bounded normalization repair
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('src/form-vocabulary.js')
+          text = path.read_text()
+          old = '    const settings = {};\n'
+          new = '    const settings = Object.create(null);\n'
+          if text.count(old) != 1:
+              raise SystemExit(f'expected exactly one unsafe settings dictionary, found {text.count(old)}')
+          path.write_text(text.replace(old, new))
+          PY
+          git diff --check
+          npm test
+      - name: Commit bounded repair
+        run: |
+          git config user.name "AXM Form Geometry Machine"
+          git config user.email "actions@github.com"
+          git add src/form-vocabulary.js
+          if git diff --cached --quiet; then
+            echo "No repair change to commit"
+            exit 0
+          fi
+          git commit -m "fix: preserve definition setting own-key identity"
+          git push origin HEAD:form-own-key-settings-20260920
