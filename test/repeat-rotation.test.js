@@ -53,6 +53,23 @@ test("repeat.rot_step works for definition instances and keeps runtime-resolutio
   assert.ok(out.warnings.some((warning) => warning.code === "DEFINITION_RUNTIME_RESOLUTION_REQUIRED"));
 });
 
+test("repeat.rot_step and repeat.with_step coexist on one bounded definition repeat", () => {
+  const out = run(request({
+    repeat: {
+      count: 3,
+      step: [0, 1, 0],
+      rot_step: [0, 0.2, 0],
+      with_step: { width: 0.5 },
+      instance: { use: "panel", with: { width: 1 }, rot: [0, 0.1, 0] }
+    }
+  }, "repeat-rotation-and-setting"));
+
+  assert.equal(out.status, "CANDIDATE");
+  const target = firstRepeatTarget(out);
+  assert.deepEqual(target.rot, [0, ["+", 0.1, ["*", ["var", "i"], 0.2]], 0]);
+  assert.deepEqual(target.with, { width: ["+", 1, ["*", ["var", "i"], 0.5]] });
+});
+
 test("compose repeat blocks reuse the same bounded rotation rule", () => {
   const out = run(request({
     compose: [
