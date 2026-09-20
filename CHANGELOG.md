@@ -4,10 +4,10 @@
 
 - Added descriptor-safe preflight of the complete caller-authored Form request before geometry normalization or JSON-backed result transport.
 - Form now refuses authored values that portable JSON would invoke, rewrite, drop, or reinterpret instead of silently changing geometry or provenance.
-- Added `HOLD_FORM_INPUT_NONFINITE_VALUE` for `NaN`/infinite authored values and `HOLD_FORM_INPUT_NONPORTABLE_VALUE` for accessors, `toJSON`/functions, `undefined`, symbols, bigint, `-0`, sparse or decorated arrays, cycles, non-plain objects, symbol-keyed properties, and non-enumerable authored fields.
+- Added `HOLD_FORM_INPUT_NONFINITE_VALUE` for `NaN`/infinite authored values and `HOLD_FORM_INPUT_NONPORTABLE_VALUE` for accessors, `toJSON`/functions, `undefined`, symbols, bigint, `-0`, sparse or decorated arrays, cycles, non-plain objects, symbol-keyed properties, non-enumerable authored fields, and JavaScript Proxy values.
 - The preflight reads property descriptors rather than caller values, so accessor-backed recipe geometry and caller-controlled `toJSON` hooks HOLD without being executed.
-- Hardened that preflight for JavaScript Proxy values: Proxy objects now HOLD before prototype/key/descriptor reflection can execute caller-controlled traps, including when the root request itself is proxied and HOLD metadata is being derived.
-- Added regressions proving accessor, `toJSON`, and Proxy trap code are not invoked, non-finite recipe coordinates do not become `null`, and ordinary portable caller recipes remain unchanged without mutating their source request.
+- Hardened that preflight for JavaScript Proxy values: live or revoked Proxy objects now HOLD before prototype/key/descriptor/array reflection can execute caller-controlled traps or escape as an uncaught revoked-Proxy throw, including when the root request itself is proxied and HOLD metadata is being derived.
+- Added regressions proving accessor, `toJSON`, live Proxy trap, and revoked root Proxy code paths fail closed without caller execution or uncaught throws; non-finite recipe coordinates do not become `null`; and ordinary portable caller recipes remain unchanged without mutating their source request.
 - Kept MorphTile runtime validation as the authority for portable caller-authored recipe semantics; this change protects Form's producer-side source integrity before that runtime boundary.
 
 ## 0.9.0 — 2026-09-20
