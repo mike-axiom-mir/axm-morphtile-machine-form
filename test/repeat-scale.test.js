@@ -35,6 +35,26 @@ test("repeat.scale_step compiles bounded positive scalar scale progression for d
   assert.deepEqual(firstTarget(out).scale, ["+", 0.5, ["*", ["var", "i"], 0.2]]);
 });
 
+test("repeat.scale_step compiles bounded positive vector scale progression for definition instances", () => {
+  const input = request({
+    repeat: {
+      count: 4,
+      step: [1.5, 0, 0],
+      scale_step: [0.2, -0.1, 0],
+      instance: { use: "panel", scale: [0.5, 1.2, 0.8] }
+    }
+  }, "repeat-vector-scale");
+  const before = JSON.stringify(input);
+  const out = run(input);
+  assert.equal(out.status, "CANDIDATE");
+  assert.equal(JSON.stringify(input), before);
+  assert.deepEqual(firstTarget(out).scale, [
+    ["+", 0.5, ["*", ["var", "i"], 0.2]],
+    ["+", 1.2, ["*", ["var", "i"], -0.1]],
+    0.8
+  ]);
+});
+
 test("repeat.scale_step can start from MorphTile's implicit unit scale", () => {
   const out = run(request({
     repeat: {
