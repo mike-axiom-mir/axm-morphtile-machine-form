@@ -5,7 +5,7 @@ const {
   normalizeDefinitionInstances,
   normalizeGrid
 } = require("./form-vocabulary");
-const { normalizeRepeatWithRotation } = require("./repeat-rotation");
+const { normalizeRepeatWithSize } = require("./repeat-size");
 
 const COMPOSE_ITEM_KEYS = new Set(["part", "instance", "repeat", "grid"]);
 const COMPOSE_INTENT_KEYS = new Set(["name", "compose"]);
@@ -65,7 +65,7 @@ function normalizeMixedComposition(items) {
       data = instance.data[0];
       usesDefinition = true;
     } else if (mode === "repeat") {
-      const repeated = normalizeRepeatWithRotation(item.repeat);
+      const repeated = normalizeRepeatWithSize(item.repeat);
       if (!repeated.ok) return hold(repeated.hold.code, `${label}.repeat: ${repeated.hold.detail}`);
       data = repeated.data;
       placements = repeated.data.repeat;
