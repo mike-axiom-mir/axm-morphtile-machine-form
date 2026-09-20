@@ -2,6 +2,8 @@
 
 ## 0.11.0 — 2026-09-20
 
+- Repaired definition-instance setting normalization so authored own keys such as `__proto__`, `constructor`, and `toString` remain exact data instead of being interpreted through JavaScript object prototypes.
+- Re-pinned Form to merged MorphTile own-key core `63a65c70bb702cb9ac979ec04233ffaa7ed5d179` and added a real receiver proof that a Form-authored own `__proto__` definition setting changes compiled geometry.
 - Added bounded `repeat.rot_step` for primitive and definition-instance repeats so an existing normalized target rotation may progress as `base + i * delta` over the fixed repeat index.
 - Requires a finite 3-vector delta, at least one non-zero rotation axis, and at least two repeated placements; malformed or no-op requests HOLD instead of being guessed.
 - Checks every generated rotation value across the complete bounded repeat domain before emission so finite authored values cannot silently expand to non-finite recipe matter.
