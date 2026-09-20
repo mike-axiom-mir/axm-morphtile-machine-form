@@ -1,6 +1,6 @@
 # MorphTile Form Machine
 
-Turns bounded form intent into candidate MorphTile mesh matter. v0.13.0 recognizes MorphTile's explicit primitive vocabulary — box, sphere, cylinder, cone, wedge, and plane — supports fail-closed flat composition, direct + parametric pattern composition, compact bounded repetition, bounded axis-aligned grids, bounded reuse of existing MorphTile definitions, and small deterministic repeat progressions for settings, rotation, primitive size, and definition-instance scale. The caller-supplied recipe path remains available as an expert escape hatch.
+Turns bounded form intent into candidate MorphTile mesh matter. v0.14.0 recognizes MorphTile's explicit primitive vocabulary — box, sphere, cylinder, cone, wedge, and plane — supports fail-closed flat composition, direct + parametric pattern composition, compact bounded repetition, bounded axis-aligned grids, bounded reuse of existing MorphTile definitions, and small deterministic repeat progressions for settings, rotation, primitive size, and definition-instance scalar/vector scale. The caller-supplied recipe path remains available as an expert escape hatch.
 
 ## Boundary answers
 
@@ -66,9 +66,9 @@ For primitive targets only, repeat may optionally include `size_step`, a finite 
 
 For definition-instance targets only, repeat may include `with_step`, an object of 1..32 finite numeric deltas. Every stepped setting must already exist as a finite numeric base in `instance.with`, and at least one delta must be non-zero. The machine compiles each stepped setting as `base + i * delta` using the fixed repeat index.
 
-Definition-instance repeats may also include scalar `scale_step`, one finite non-zero scale delta. The base is either an explicit positive finite scalar `instance.scale` or MorphTile's existing implicit unit scale when `scale` is omitted. Form proves every generated scale remains finite and strictly positive across the complete repeat domain before emitting `base + i * delta`. Vector scale progression is intentionally held rather than inventing per-axis delta semantics.
+Definition-instance repeats may also include `scale_step` in one of two bounded forms. A scalar step is one finite non-zero number and requires scalar `instance.scale` or omitted unit scale. A vector step is exactly three finite numbers with at least one non-zero axis and requires vector `instance.scale`, or omitted scale which maps to MorphTile's exact implicit unit vector `[1,1,1]`. Form proves every generated scale/component remains finite and strictly positive across the complete repeat domain before emission. Scalar/vector base-step coercion is deliberately not guessed: mismatched forms HOLD.
 
-`rot_step`, `with_step`, and scalar `scale_step` may coexist on a definition-instance repeat because they affect separate normalized fields while sharing the same already-bounded repeat index. Primitive `size_step` may coexist with `rot_step` for the same reason. The same bounded repeat may be used as one `intent.compose` block. It does not become recursively nestable.
+`rot_step`, `with_step`, and scalar/vector `scale_step` may coexist on a definition-instance repeat because they affect separate normalized fields while sharing the same already-bounded repeat index. Primitive `size_step` may coexist with `rot_step` for the same reason. The same bounded repeat may be used as one `intent.compose` block. It does not become recursively nestable.
 
 ## Bounded grid composition
 
@@ -97,7 +97,7 @@ Each instance requires `use` and may add:
 
 Form Machine validates and normalizes the request, then emits MorphTile recipe `use` parts. It deliberately does **not** fetch definitions, duplicate their bodies, or claim dependency closure. Missing definitions and unsupported settings remain visible MorphTile runtime HOLDs. Assembly Machine remains the owner of definition/word closure and provenance when packaging complete kits.
 
-The repeat-only progression rules change existing normalized definition settings, rotation or scalar scale over the fixed repeat index. Direct instances and grid instances remain fixed-setting/fixed-transform references.
+The repeat-only progression rules change existing normalized definition settings, rotation or scalar/vector scale over the fixed repeat index. Direct instances and grid instances remain fixed-setting/fixed-transform references.
 
 These capabilities belong in Form Machine rather than MorphTile core because MorphTile v0.4 already provides the universal recipe representation, definition `use`, expression-valued transforms/settings/scale, nested loop composition and runtime resolution semantics.
 
@@ -111,12 +111,12 @@ Node 18 or later; zero runtime dependencies; no secrets or network required.
 
 ## Truth boundary
 
-- IMPLEMENTED: deterministic primitive normalization, bounded flat primitive composition, bounded direct + pattern composition, bounded repeat composition, bounded axis-aligned grid composition, bounded definition-instance composition, bounded repeat setting/rotation/primitive-size/definition-scale progression, the existing caller-recipe adapter, and the local envelope used by fixtures.
+- IMPLEMENTED: deterministic primitive normalization, bounded flat primitive composition, bounded direct + pattern composition, bounded repeat composition, bounded axis-aligned grid composition, bounded definition-instance composition, bounded repeat setting/rotation/primitive-size/definition-scalar-or-vector-scale progression, the existing caller-recipe adapter, and the local envelope used by fixtures.
 - TESTED: the claims named by the local test files once CI for the exact branch head is green.
 - RUNTIME TARGET: MorphTile commit `2bdf8eade1376055473b9cc1b11734b72a5566e5`.
 - RUNTIME BOUNDARY: caller-owned recipes remain an expert escape hatch; current pinned MorphTile runtime validation owns generic recipe-expression meaning, including `HOLD_RECIPE_NONFINITE_VALUE` when a present numeric expression evaluates non-finite. Finite authored Form primitive values can also become non-finite during derived mesh arithmetic; current pinned MorphTile owns that shared compiled-representation boundary and returns `HOLD_MESH_NONFINITE_VALUE` while clearing partial `P/T/K`.
 - EXPERIMENTAL: envelope v0.1 and every candidate schema in this foundation.
 - NOT TESTED: visual quality; arbitrary geometry generation; future MorphTile commits beyond the exact pin.
-- HELD: autonomous geometry synthesis, recursive/general nested loop/condition/expression recipe synthesis beyond the fixed rules, caller-authored expressions in bounded settings/transforms, vector `scale_step`, multidimensional grid-setting/rotation/size/scale progression, automatic definition discovery, visual proof, and production readiness.
+- HELD: autonomous geometry synthesis, recursive/general nested loop/condition/expression recipe synthesis beyond the fixed rules, caller-authored expressions in bounded settings/transforms, scalar/vector scale coercion, multidimensional grid-setting/rotation/size/scale progression, automatic definition discovery, visual proof, and production readiness.
 
 This is a bounded creation machine, not evidence that MorphTile can autonomously manufacture MorphTile.

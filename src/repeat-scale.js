@@ -7,28 +7,38 @@ function hold(code, detail) {
 }
 
 function normalizeScaleStep(value) {
-  if (typeof value !== "number" || !Number.isFinite(value)) {
-    return hold("HOLD_FORM_REPEAT_INVALID", "repeat.scale_step must be one finite number");
+  if (typeof value === "number") {
+    if (!Number.isFinite(value)) {
+      return hold("HOLD_FORM_REPEAT_INVALID", "repeat.scale_step scalar must be finite");
+    }
+    if (value === 0) {
+      return hold("HOLD_FORM_REPEAT_INVALID", "repeat.scale_step must change scale");
+    }
+    return { ok: true, kind: "scalar", value };
   }
-  if (value === 0) {
-    return hold("HOLD_FORM_REPEAT_INVALID", "repeat.scale_step must change scale");
+
+  if (!Array.isArray(value) || value.length !== 3 || value.some((item) => typeof item !== "number" || !Number.isFinite(item))) {
+    return hold("HOLD_FORM_REPEAT_INVALID", "repeat.scale_step must be one finite number or three finite per-axis numbers");
   }
-  return { ok: true, value };
+  if (value.every((item) => item === 0)) {
+    return hold("HOLD_FORM_REPEAT_INVALID", "repeat.scale_step must change scale on at least one axis");
+  }
+  return { ok: true, kind: "vector", value: value.slice() };
 }
 
-function positiveFiniteScaleProgression(base, delta, count) {
+function positiveFiniteScaleProgression(base, delta, count, name = "repeat scale") {
   for (let index = 0; index < count; index += 1) {
     const value = base + index * delta;
     if (!Number.isFinite(value)) {
       return hold(
         "HOLD_FORM_REPEAT_INVALID",
-        `repeat scale produces a non-finite generated value at index ${index}`
+        `${name} produces a non-finite generated value at index ${index}`
       );
     }
     if (value <= 0) {
       return hold(
         "HOLD_FORM_REPEAT_INVALID",
-        `repeat scale must stay positive across the complete repeat domain; index ${index} produced ${value}`
+        `${name} must stay positive across the complete repeat domain; index ${index} produced ${value}`
       );
     }
   }
@@ -56,14 +66,34 @@ function normalizeRepeatWithScale(repeat) {
   }
 
   const repeatedTarget = normalized.data.body[0];
-  if (Array.isArray(repeatedTarget.scale)) {
-    return hold("HOLD_FORM_REPEAT_INVALID", "repeat.scale_step currently requires scalar instance.scale; vector scale progression remains held");
+  if (scaleStep.kind === "scalar") {
+    if (Array.isArray(repeatedTarget.scale)) {
+      return hold("HOLD_FORM_REPEAT_INVALID", "scalar repeat.scale_step requires scalar instance.scale or omitted unit scale");
+    }
+    const baseScale = repeatedTarget.scale === undefined ? 1 : repeatedTarget.scale;
+    const closure = positiveFiniteScaleProgression(baseScale, scaleStep.value, normalized.data.repeat);
+    if (!closure.ok) return closure;
+    repeatedTarget.scale = ["+", baseScale, ["*", ["var", "i"], scaleStep.value]];
+    return normalized;
   }
-  const baseScale = repeatedTarget.scale === undefined ? 1 : repeatedTarget.scale;
-  const closure = positiveFiniteScaleProgression(baseScale, scaleStep.value, normalized.data.repeat);
-  if (!closure.ok) return closure;
 
-  repeatedTarget.scale = ["+", baseScale, ["*", ["var", "i"], scaleStep.value]];
+  if (repeatedTarget.scale !== undefined && !Array.isArray(repeatedTarget.scale)) {
+    return hold("HOLD_FORM_REPEAT_INVALID", "vector repeat.scale_step requires vector instance.scale or omitted unit scale");
+  }
+  const baseScale = repeatedTarget.scale === undefined ? [1, 1, 1] : repeatedTarget.scale.slice();
+  for (let axis = 0; axis < 3; axis += 1) {
+    const closure = positiveFiniteScaleProgression(
+      baseScale[axis],
+      scaleStep.value[axis],
+      normalized.data.repeat,
+      `repeat scale axis ${axis}`
+    );
+    if (!closure.ok) return closure;
+  }
+  repeatedTarget.scale = baseScale.map((base, axis) => {
+    const delta = scaleStep.value[axis];
+    return delta === 0 ? base : ["+", base, ["*", ["var", "i"], delta]];
+  });
   return normalized;
 }
 

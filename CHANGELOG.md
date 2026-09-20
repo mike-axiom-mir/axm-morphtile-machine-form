@@ -1,5 +1,31 @@
 # Changelog
 
+## 0.14.0 — 2026-09-20
+
+- Extended definition-instance `repeat.scale_step` with a bounded 3-vector form for deterministic anisotropic whole-form growth/shrink.
+- Requires exactly three finite deltas, at least one non-zero axis, and at least two repeated placements.
+- Accepts a positive finite vector `instance.scale`, or MorphTile's exact implicit unit vector `[1,1,1]` when scale is omitted; scalar/vector base-step coercion remains HELD.
+- Proves every generated per-axis scale remains finite and strictly positive across the complete bounded repeat domain before emission.
+- Reuses the same rule through `intent.compose` and keeps zero-delta axes as exact base values.
+- Added pinned-runtime proof that real MorphTile evaluates Form-generated vector scale expressions into finite changing geometry distinct from a fixed-vector-scale control.
+- Kept primitive scale progression, grid scale progression, arbitrary expressions and autonomous geometry invention HELD.
+
+## 0.13.0 — 2026-09-20
+
+- Added bounded scalar `repeat.scale_step` for definition-instance repeats so reusable whole forms can grow or shrink as `base + i * delta` without exposing arbitrary recipe expressions.
+- Requires a finite non-zero scalar delta, at least two placements, and a positive scalar base or MorphTile's implicit unit scale.
+- Proves every generated scale remains finite and strictly positive across the complete bounded repeat domain before emission.
+- Reuses the same progression inside `intent.compose` and composes with existing definition `with_step` and `rot_step`.
+- Added pinned-runtime proof through a real resolved MorphTile definition.
+
+## 0.12.0 — 2026-09-20
+
+- Added bounded primitive `repeat.size_step` so repeated primitive dimensions can grow, shrink or taper as `base + i * delta`.
+- Requires a finite 3-vector delta, at least one changed axis, at least two placements, and a primitive repeat target.
+- Proves every generated size component remains finite and strictly positive across the complete bounded repeat domain before emission.
+- Reuses the same rule inside `intent.compose` and composes with `rot_step`.
+- Re-pinned receiver evidence to MorphTile `2bdf8eade1376055473b9cc1b11734b72a5566e5`.
+
 ## 0.11.0 — 2026-09-20
 
 - Repaired definition-instance setting normalization so authored own keys such as `__proto__`, `constructor`, and `toString` remain exact data instead of being interpreted through JavaScript object prototypes.
