@@ -22,13 +22,14 @@
 
 - `intent.instances` provides bounded deterministic reuse of 1..64 existing MorphTile definitions through recipe `use` parts.
 - Each instance requires a bounded definition id and may carry finite `pos`, `rot`, positive `scale`, and up to 32 finite numeric `with` settings.
-- Unknown fields, malformed references/settings/transforms, oversized instance sets, and ambiguous simultaneous composition modes HOLD instead of being guessed.
+- `intent.repeat` can now compactly repeat either one primitive part or one bounded definition instance through the same existing MorphTile loop substrate.
+- Unknown fields, malformed references/settings/transforms, ambiguous repeat targets, oversized instance sets, and ambiguous simultaneous composition modes HOLD instead of being guessed.
 - Form Machine does not resolve or copy definition bodies. It emits references and states the runtime-resolution boundary explicitly.
-- Runtime conformance advances to current observed MorphTile main `a579182ae585e5722ac87dd0cc8209963b18d000` and tests real definition resolution, parametric `with` overrides, exact geometry receipts, determinism, and the visible no-world HOLD.
+- Runtime conformance advances to current observed MorphTile main `a579182ae585e5722ac87dd0cc8209963b18d000` and tests real definition resolution, parametric `with` overrides, compact repeated definition use, exact geometry receipts, determinism, and the visible no-world HOLD.
 
 ## Placement
 
-This belongs in Form Machine, not MorphTile core. MorphTile already has the universal recipe `use` representation and runtime semantics for definition lookup, settings, transforms, recursion/depth limits, and HOLDs. The missing rule was creation-side normalization of a common reuse request.
+This belongs in Form Machine, not MorphTile core. MorphTile already has the universal recipe `use` and loop representations and runtime semantics for definition lookup, settings, transforms, recursion/depth limits, budget HOLDs, and missing-world HOLDs. The missing rule was creation-side normalization of common reuse/repeat requests.
 
 Dependency closure and provenance remain Assembly Machine concerns. Surface/color remains Surface Machine territory.
 
