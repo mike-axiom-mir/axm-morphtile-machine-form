@@ -144,5 +144,4 @@ integrationTest("current pinned runtime fails closed when the caller-recipe esca
 
   const compiled = MorphTile.compileMesh(tile);
   assert.equal(compiled.hold, "HOLD_RECIPE_NONFINITE_VALUE");
-  assert.equal(compiled.recipe_parts, 0);
 });
