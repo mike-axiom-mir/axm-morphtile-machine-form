@@ -13,7 +13,7 @@ test("builds candidate form data without mutating the request", () => {
   const before = JSON.stringify(request), first = run(request), second = run(request);
   assert.equal(first.status, "CANDIDATE");
   assert.deepEqual(first, second);
-  assert.equal(first.machine.version, "0.2.0");
+  assert.equal(first.machine.version, "0.3.0");
   assert.equal(first.candidate.facets.mesh.data.shape, "box");
   assert.equal(JSON.stringify(request), before);
 });
@@ -91,4 +91,49 @@ test("keeps caller-supplied recipes on the existing generated-mesh path", () => 
     source: null,
     data: { generator: "recipe", vars: { scale: 2 }, parts: recipe }
   });
+});
+
+test("normalizes a flat primitive composition deterministically without mutating input", () => {
+  const input = withIntent("parts-proof", {
+    name: "parts proof",
+    parts: [
+      { shape: "box", size: [3, 0.3, 0.6], pos: [0, 1.5, 0] },
+      { shape: "cylinder", size: [0.45, 1.5, 0.45], pos: [-1.1, 0.75, 0], segments: 12 },
+      { shape: "sphere", size: [0.7, 0.7, 0.7], pos: [1.1, 1.5, 0], segments: 12 }
+    ]
+  });
+  const before = JSON.stringify(input), first = run(input), second = run(input);
+  assert.equal(first.status, "CANDIDATE");
+  assert.deepEqual(first, second);
+  assert.equal(JSON.stringify(input), before);
+  assert.deepEqual(first.candidate.facets.mesh, {
+    type: "generated",
+    source: null,
+    data: {
+      generator: "recipe",
+      vars: {},
+      parts: [
+        { shape: "box", size: [3, 0.3, 0.6], pos: [0, 1.5, 0] },
+        { shape: "cylinder", size: [0.45, 1.5, 0.45], pos: [-1.1, 0.75, 0], segments: 12 },
+        { shape: "sphere", size: [0.7, 0.7, 0.7], pos: [1.1, 1.5, 0], segments: 12 }
+      ]
+    }
+  });
+});
+
+test("fails closed on ambiguous, oversized, unsupported, or unknown-field compositions", () => {
+  const cases = [
+    ["ambiguous", { parts: [{ shape: "box" }], recipe: [{ shape: "box" }] }, "HOLD_FORM_COMPOSITION_AMBIGUOUS"],
+    ["empty", { parts: [] }, "HOLD_FORM_COMPOSITION_INVALID"],
+    ["too-many", { parts: Array.from({ length: 65 }, () => ({ shape: "box" })) }, "HOLD_FORM_COMPOSITION_INVALID"],
+    ["bad-shape", { parts: [{ shape: "dragon" }] }, "HOLD_FORM_VOCABULARY_MISSING"],
+    ["unknown-field", { parts: [{ shape: "box", color: [1, 0, 0] }] }, "HOLD_FORM_PARAMETER_UNKNOWN"]
+  ];
+
+  for (const [id, intent, code] of cases) {
+    const out = run(withIntent(id, intent));
+    assert.equal(out.status, "HOLD", id);
+    assert.equal(out.candidate, null, id);
+    assert.equal(out.holds[0].code, code, id);
+  }
 });
