@@ -1,16 +1,16 @@
 # MorphTile Form Machine
 
-Turns bounded form intent into candidate MorphTile mesh matter. v0.4.0 recognizes MorphTile's explicit primitive vocabulary — box, sphere, cylinder, cone, wedge, and plane — supports fail-closed flat primitive composition, and adds a compact bounded repeat vocabulary that compiles repeated geometry into MorphTile recipe matter. The existing caller-supplied recipe path remains available as an expert escape hatch.
+Turns bounded form intent into candidate MorphTile mesh matter. v0.5.0 recognizes MorphTile's explicit primitive vocabulary — box, sphere, cylinder, cone, wedge, and plane — supports fail-closed flat primitive composition, compact bounded repetition, and bounded reuse of existing MorphTile definitions. The existing caller-supplied recipe path remains available as an expert escape hatch.
 
 ## Boundary answers
 
-1. **What it does:** Maps a small deterministic form vocabulary, bounded local geometry parameters, bounded flat primitive compositions, and bounded repeated primitive patterns into candidate MorphTile mesh facets.
-2. **What it does not own:** Canonical worlds, merge authority, surface quality, behavior, UI, or aesthetic acceptance.
+1. **What it does:** Maps a small deterministic form vocabulary, bounded local geometry parameters, bounded flat primitive compositions, bounded repeated primitive patterns, and bounded definition-instance requests into candidate MorphTile mesh facets.
+2. **What it does not own:** Canonical worlds, merge authority, definition discovery/closure, surface quality, behavior, UI, or aesthetic acceptance.
 3. **What it accepts:** axm.morphtile.form-request/v0.1 in the provisional v0.1 envelope.
 4. **What it produces:** A morphtile.tile-spec/v0.4 candidate; never an automatic world mutation.
 5. **MorphTile interaction:** output goes through MorphTile's public contracts. MorphTile does not depend on this repository.
 6. **Evidence:** Local deterministic mapping/boundary tests plus pinned-runtime conformance when exact-head CI is green. Visual quality is explicitly not verified.
-7. **When it cannot satisfy a request:** Unsupported named forms return HOLD_FORM_VOCABULARY_MISSING; malformed/out-of-bound primitive parameters return HOLD_FORM_PARAMETER_INVALID; malformed/oversized compositions and repeats HOLD instead of being guessed.
+7. **When it cannot satisfy a request:** Unsupported named forms return HOLD_FORM_VOCABULARY_MISSING; malformed/out-of-bound primitive parameters return HOLD_FORM_PARAMETER_INVALID; malformed/oversized compositions, repeats, and definition instances HOLD instead of being guessed.
 
 ## Primitive vocabulary
 
@@ -45,9 +45,22 @@ Required fields:
 
 The repeat compiler emits MorphTile recipe expressions using the deterministic recipe loop index rather than materializing dozens of copied parts in the request/output. A zero translation step is rejected because it would duplicate identical geometry at the same location. Unknown repeat or part fields fail closed.
 
-This is intentionally smaller than MorphTile's full recipe language. Conditions, arbitrary expressions, definition reuse, nested loops, and autonomous pattern invention remain outside this bounded machine vocabulary.
+## Bounded definition reuse
 
-Surface/color fields are not accepted by the bounded Form Machine composition lanes because Surface Machine owns look-development concerns.
+`intent.instances` accepts 1..64 references to definitions that already exist in the MorphTile world used at runtime.
+
+Each instance requires `use` and may add:
+
+- `with`: up to 32 finite numeric settings for a parametric recipe definition;
+- `pos`: finite 3-vector translation;
+- `rot`: finite 3-vector rotation;
+- `scale`: a positive finite scalar or positive finite 3-vector.
+
+Form Machine validates and normalizes the request, then emits MorphTile recipe `use` parts. It deliberately does **not** fetch definitions, duplicate their bodies, or claim dependency closure. Missing definitions and unsupported settings remain visible MorphTile runtime HOLDs. Assembly Machine remains the owner of definition/word closure and provenance when packaging complete kits.
+
+This belongs in Form Machine rather than MorphTile core because MorphTile v0.4 already provides the universal recipe `use` representation and runtime resolution semantics.
+
+Surface/color fields are not accepted by bounded Form Machine composition lanes because Surface Machine owns look-development concerns.
 
 ## Run
 
@@ -57,11 +70,11 @@ Node 18 or later; zero runtime dependencies; no secrets or network required.
 
 ## Truth boundary
 
-- IMPLEMENTED: deterministic primitive normalization, bounded flat primitive composition, bounded primitive repeat composition, the existing caller-recipe adapter, and the local envelope used by fixtures.
+- IMPLEMENTED: deterministic primitive normalization, bounded flat primitive composition, bounded primitive repeat composition, bounded definition-instance composition, the existing caller-recipe adapter, and the local envelope used by fixtures.
 - TESTED: the claims named by the local test files once CI for the exact branch head is green.
-- RUNTIME TARGET: MorphTile commit 4346df01ed18cd1336064f9323d7766ff4f6338a, the current main observed for this candidate.
+- RUNTIME TARGET: MorphTile commit `a579182ae585e5722ac87dd0cc8209963b18d000`.
 - EXPERIMENTAL: envelope v0.1 and every candidate schema in this foundation.
 - NOT TESTED: visual quality; arbitrary geometry generation; future MorphTile commits beyond the exact pin.
-- HELD: autonomous geometry synthesis, general loop/condition/expression recipe synthesis, definition reuse, visual proof, and production readiness.
+- HELD: autonomous geometry synthesis, general nested loop/condition/expression recipe synthesis, automatic definition discovery, visual proof, and production readiness.
 
 This is a bounded creation machine, not evidence that MorphTile can autonomously manufacture MorphTile.
