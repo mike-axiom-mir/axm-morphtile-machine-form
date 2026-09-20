@@ -10,7 +10,11 @@ const {
   normalizeGrid,
   normalizeDefinitionInstances
 } = require("./form-vocabulary");
-const MACHINE = { id: "axm.morphtile.machine.form", version: "0.6.0" };
+const {
+  validateComposeIntentKeys,
+  normalizeMixedComposition
+} = require("./mixed-composition");
+const MACHINE = { id: "axm.morphtile.machine.form", version: "0.7.0" };
 
 function holdResult(request, hold, suggested_missing_capability = null) {
   return result(request, MACHINE, "HOLD", {
@@ -25,7 +29,7 @@ function run(request) {
   const validIntent = validateIntentObject(intent);
   if (!validIntent.ok) return holdResult(request, validIntent.hold);
 
-  const compositionModes = ["recipe", "parts", "repeat", "grid", "instances"].filter((key) => intent[key] !== undefined);
+  const compositionModes = ["recipe", "parts", "compose", "repeat", "grid", "instances"].filter((key) => intent[key] !== undefined);
 
   if (compositionModes.length > 1) {
     return holdResult(request, {
@@ -35,7 +39,7 @@ function run(request) {
   }
 
   const mode = compositionModes[0] || "primitive";
-  const keys = validateIntentKeys(intent, mode);
+  const keys = mode === "compose" ? validateComposeIntentKeys(intent) : validateIntentKeys(intent, mode);
   if (!keys.ok) return holdResult(request, keys.hold);
 
   let mesh;
@@ -50,6 +54,12 @@ function run(request) {
     if (!parts.ok) return holdResult(request, parts.hold);
     mesh = { type: "generated", source: null, data: { generator: "recipe", vars: {}, parts: parts.data } };
     check = `bounded flat primitive composition normalized into a MorphTile recipe (${parts.data.length} parts)`;
+  } else if (mode === "compose") {
+    const composed = normalizeMixedComposition(intent.compose);
+    if (!composed.ok) return holdResult(request, composed.hold);
+    mesh = { type: "generated", source: null, data: { generator: "recipe", vars: {}, parts: composed.data } };
+    check = `bounded mixed primitive/definition composition normalized into one MorphTile recipe (${composed.data.length} parts)`;
+    if (composed.has_definitions) warnings.push({ code: "DEFINITION_RUNTIME_RESOLUTION_REQUIRED" });
   } else if (mode === "repeat") {
     const repeated = normalizePrimitiveRepeat(intent.repeat);
     if (!repeated.ok) return holdResult(request, repeated.hold);
