@@ -1,8 +1,14 @@
 "use strict";
 
 const { assertRequest, result } = require("./envelope");
-const { normalizePrimitiveIntent, normalizePrimitiveParts, normalizePrimitiveRepeat } = require("./form-vocabulary");
-const MACHINE = { id: "axm.morphtile.machine.form", version: "0.4.0" };
+const {
+  validateIntentObject,
+  validateIntentKeys,
+  normalizePrimitiveIntent,
+  normalizePrimitiveParts,
+  normalizePrimitiveRepeat
+} = require("./form-vocabulary");
+const MACHINE = { id: "axm.morphtile.machine.form", version: "0.5.0" };
 
 function holdResult(request, hold, suggested_missing_capability = null) {
   return result(request, MACHINE, "HOLD", {
@@ -13,7 +19,10 @@ function holdResult(request, hold, suggested_missing_capability = null) {
 
 function run(request) {
   assertRequest(request);
-  const intent = request.intent || {};
+  const intent = request.intent === undefined ? {} : request.intent;
+  const validIntent = validateIntentObject(intent);
+  if (!validIntent.ok) return holdResult(request, validIntent.hold);
+
   const compositionModes = ["recipe", "parts", "repeat"].filter((key) => intent[key] !== undefined);
 
   if (compositionModes.length > 1) {
@@ -23,17 +32,23 @@ function run(request) {
     });
   }
 
+  const mode = compositionModes[0] || "primitive";
+  const keys = validateIntentKeys(intent, mode);
+  if (!keys.ok) return holdResult(request, keys.hold);
+
   let mesh;
   let check;
-  if (intent.recipe !== undefined) {
+  const warnings = [{ code: "NOT_VISUALLY_VERIFIED" }];
+  if (mode === "recipe") {
     mesh = { type: "generated", source: null, data: { generator: "recipe", vars: intent.vars || {}, parts: intent.recipe } };
     check = "caller recipe mapped to a MorphTile generated mesh facet";
-  } else if (intent.parts !== undefined) {
+    warnings.push({ code: "CALLER_RECIPE_RUNTIME_VALIDATION_REQUIRED" });
+  } else if (mode === "parts") {
     const parts = normalizePrimitiveParts(intent.parts);
     if (!parts.ok) return holdResult(request, parts.hold);
     mesh = { type: "generated", source: null, data: { generator: "recipe", vars: {}, parts: parts.data } };
     check = `bounded flat primitive composition normalized into a MorphTile recipe (${parts.data.length} parts)`;
-  } else if (intent.repeat !== undefined) {
+  } else if (mode === "repeat") {
     const repeated = normalizePrimitiveRepeat(intent.repeat);
     if (!repeated.ok) return holdResult(request, repeated.hold);
     mesh = { type: "generated", source: null, data: { generator: "recipe", vars: {}, parts: [repeated.data] } };
@@ -61,7 +76,7 @@ function run(request) {
       facets: { mesh }
     },
     evidence: [{ kind: "STRUCTURAL", status: "PASS", check }],
-    warnings: [{ code: "NOT_VISUALLY_VERIFIED" }]
+    warnings
   });
 }
 
