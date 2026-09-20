@@ -34,9 +34,9 @@ This candidate advances Form Machine's exact runtime pin from `26b89a77f6a90715a
 The receiver proof now covers both runtime truth boundaries relevant to Form output:
 
 - caller-owned recipe expressions that evaluate non-finite -> `HOLD_RECIPE_NONFINITE_VALUE`;
-- an ordinary bounded Form primitive whose finite authored placement overflows during mesh arithmetic -> `HOLD_MESH_NONFINITE_VALUE` with empty `P/T/K`.
+- an ordinary bounded Form primitive whose finite authored position + size combination overflows during mesh arithmetic -> `HOLD_MESH_NONFINITE_VALUE` with empty `P/T/K`.
 
-A large finite primitive placement remains accepted and compiles to finite positions, so the new mesh receipt is not blanket rejection.
+A large finite primitive position + size control remains accepted and compiles to finite positions, so the new mesh receipt is not blanket rejection.
 
 ## Placement
 
