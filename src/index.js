@@ -6,9 +6,10 @@ const {
   validateIntentKeys,
   normalizePrimitiveIntent,
   normalizePrimitiveParts,
-  normalizePrimitiveRepeat
+  normalizePrimitiveRepeat,
+  normalizeDefinitionInstances
 } = require("./form-vocabulary");
-const MACHINE = { id: "axm.morphtile.machine.form", version: "0.4.0" };
+const MACHINE = { id: "axm.morphtile.machine.form", version: "0.5.0" };
 
 function holdResult(request, hold, suggested_missing_capability = null) {
   return result(request, MACHINE, "HOLD", {
@@ -23,7 +24,7 @@ function run(request) {
   const validIntent = validateIntentObject(intent);
   if (!validIntent.ok) return holdResult(request, validIntent.hold);
 
-  const compositionModes = ["recipe", "parts", "repeat"].filter((key) => intent[key] !== undefined);
+  const compositionModes = ["recipe", "parts", "repeat", "instances"].filter((key) => intent[key] !== undefined);
 
   if (compositionModes.length > 1) {
     return holdResult(request, {
@@ -52,7 +53,14 @@ function run(request) {
     const repeated = normalizePrimitiveRepeat(intent.repeat);
     if (!repeated.ok) return holdResult(request, repeated.hold);
     mesh = { type: "generated", source: null, data: { generator: "recipe", vars: {}, parts: [repeated.data] } };
-    check = `bounded primitive repeat normalized into a compact MorphTile recipe (${repeated.data.repeat} instances)`;
+    check = `bounded ${repeated.target_kind === "instance" ? "definition-instance" : "primitive"} repeat normalized into a compact MorphTile recipe (${repeated.data.repeat} instances)`;
+    if (repeated.target_kind === "instance") warnings.push({ code: "DEFINITION_RUNTIME_RESOLUTION_REQUIRED" });
+  } else if (mode === "instances") {
+    const instances = normalizeDefinitionInstances(intent.instances);
+    if (!instances.ok) return holdResult(request, instances.hold);
+    mesh = { type: "generated", source: null, data: { generator: "recipe", vars: {}, parts: instances.data } };
+    check = `bounded definition-instance composition normalized into MorphTile recipe uses (${instances.data.length} instances)`;
+    warnings.push({ code: "DEFINITION_RUNTIME_RESOLUTION_REQUIRED" });
   } else {
     const primitive = normalizePrimitiveIntent(intent);
     if (!primitive.ok) {

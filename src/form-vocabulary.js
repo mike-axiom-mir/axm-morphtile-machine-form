@@ -3,15 +3,19 @@
 const PRIMITIVES = Object.freeze(["box", "sphere", "cylinder", "cone", "wedge", "plane"]);
 const RADIAL = new Set(["sphere", "cylinder", "cone"]);
 const PART_KEYS = new Set(["shape", "size", "pos", "rot", "segments", "taper", "sub"]);
+const INSTANCE_KEYS = new Set(["use", "with", "pos", "rot", "scale"]);
 const INTENT_KEYS = Object.freeze({
   primitive: new Set(["name", ...PART_KEYS]),
   recipe: new Set(["name", "recipe", "vars"]),
   parts: new Set(["name", "parts"]),
-  repeat: new Set(["name", "repeat"])
+  repeat: new Set(["name", "repeat"]),
+  instances: new Set(["name", "instances"])
 });
-const REPEAT_KEYS = new Set(["count", "step", "part"]);
+const REPEAT_KEYS = new Set(["count", "step", "part", "instance"]);
 const MAX_FLAT_PARTS = 64;
 const MAX_REPEAT_COUNT = 64;
+const MAX_DEFINITION_INSTANCES = 64;
+const MAX_INSTANCE_SETTINGS = 32;
 
 function hold(code, detail) {
   return { ok: false, hold: { code, detail } };
@@ -132,6 +136,87 @@ function normalizePrimitiveParts(parts) {
   return { ok: true, data: normalized };
 }
 
+function instanceLabel(index) {
+  return Number.isInteger(index) ? `instances[${index}]` : String(index || "instance");
+}
+
+function normalizeDefinitionInstance(instance, index) {
+  const label = instanceLabel(index);
+  if (!instance || typeof instance !== "object" || Array.isArray(instance)) {
+    return hold("HOLD_FORM_DEFINITION_INSTANCE_INVALID", `${label} must be an object`);
+  }
+
+  const unknown = Object.keys(instance).filter((key) => !INSTANCE_KEYS.has(key)).sort();
+  if (unknown.length) {
+    return hold("HOLD_FORM_PARAMETER_UNKNOWN", `${label} has unsupported field(s): ${unknown.join(", ")}`);
+  }
+
+  if (typeof instance.use !== "string" || !/^[A-Za-z0-9_.-]{1,128}$/.test(instance.use)) {
+    return hold("HOLD_FORM_DEFINITION_INSTANCE_INVALID", `${label}.use must be a non-empty definition id using A-Z, a-z, 0-9, _, ., or -`);
+  }
+
+  const data = { use: instance.use };
+
+  if (instance.with !== undefined) {
+    if (!instance.with || typeof instance.with !== "object" || Array.isArray(instance.with)) {
+      return hold("HOLD_FORM_DEFINITION_INSTANCE_INVALID", `${label}.with must be an object of finite numeric settings`);
+    }
+    const keys = Object.keys(instance.with).sort();
+    if (keys.length > MAX_INSTANCE_SETTINGS) {
+      return hold("HOLD_FORM_DEFINITION_INSTANCE_INVALID", `${label}.with may contain at most ${MAX_INSTANCE_SETTINGS} settings`);
+    }
+    const settings = {};
+    for (const key of keys) {
+      if (!/^[A-Za-z_][A-Za-z0-9_.-]{0,63}$/.test(key)) {
+        return hold("HOLD_FORM_DEFINITION_INSTANCE_INVALID", `${label}.with contains invalid setting name: ${key}`);
+      }
+      const value = instance.with[key];
+      if (typeof value !== "number" || !Number.isFinite(value)) {
+        return hold("HOLD_FORM_DEFINITION_INSTANCE_INVALID", `${label}.with.${key} must be a finite number`);
+      }
+      settings[key] = value;
+    }
+    if (keys.length) data.with = settings;
+  }
+
+  const pos = vec3(instance.pos, `${label}.pos`, { fallback: undefined });
+  if (!pos.ok) return pos;
+  if (pos.value !== undefined) data.pos = pos.value;
+
+  const rot = vec3(instance.rot, `${label}.rot`, { fallback: undefined });
+  if (!rot.ok) return rot;
+  if (rot.value !== undefined) data.rot = rot.value;
+
+  if (instance.scale !== undefined) {
+    if (typeof instance.scale === "number") {
+      if (!Number.isFinite(instance.scale) || instance.scale <= 0) {
+        return hold("HOLD_FORM_PARAMETER_INVALID", `${label}.scale must be a finite number greater than zero`);
+      }
+      data.scale = instance.scale;
+    } else {
+      const scale = vec3(instance.scale, `${label}.scale`, { positive: true });
+      if (!scale.ok) return scale;
+      data.scale = scale.value;
+    }
+  }
+
+  return { ok: true, data };
+}
+
+function normalizeDefinitionInstances(instances) {
+  if (!Array.isArray(instances) || instances.length < 1 || instances.length > MAX_DEFINITION_INSTANCES) {
+    return hold("HOLD_FORM_DEFINITION_INSTANCE_INVALID", `instances must contain 1 to ${MAX_DEFINITION_INSTANCES} definition references`);
+  }
+
+  const normalized = [];
+  for (let i = 0; i < instances.length; i++) {
+    const item = normalizeDefinitionInstance(instances[i], i);
+    if (!item.ok) return item;
+    normalized.push(item.data);
+  }
+  return { ok: true, data: normalized };
+}
+
 function normalizePrimitiveRepeat(repeat) {
   if (!repeat || typeof repeat !== "object" || Array.isArray(repeat)) {
     return hold("HOLD_FORM_REPEAT_INVALID", "repeat must be an object");
@@ -154,12 +239,19 @@ function normalizePrimitiveRepeat(repeat) {
     return hold("HOLD_FORM_REPEAT_INVALID", "repeat.step must move at least one axis; zero-step duplicates identical geometry");
   }
 
-  const part = normalizePrimitivePart(repeat.part, "repeat.part");
-  if (!part.ok) return part;
+  const targetModes = ["part", "instance"].filter((key) => repeat[key] !== undefined);
+  if (targetModes.length !== 1) {
+    return hold("HOLD_FORM_REPEAT_INVALID", "repeat must provide exactly one target: part or instance");
+  }
 
-  const basePos = part.data.pos || [0, 0, 0];
-  const repeatedPart = { ...part.data };
-  repeatedPart.pos = basePos.map((base, axis) => {
+  const target = targetModes[0] === "part"
+    ? normalizePrimitivePart(repeat.part, "repeat.part")
+    : normalizeDefinitionInstance(repeat.instance, "repeat.instance");
+  if (!target.ok) return target;
+
+  const basePos = target.data.pos || [0, 0, 0];
+  const repeatedTarget = { ...target.data };
+  repeatedTarget.pos = basePos.map((base, axis) => {
     const delta = step.value[axis];
     return delta === 0 ? base : ["+", base, ["*", ["var", "i"], delta]];
   });
@@ -169,8 +261,9 @@ function normalizePrimitiveRepeat(repeat) {
     data: {
       repeat: count.value,
       as: "i",
-      body: [repeatedPart]
-    }
+      body: [repeatedTarget]
+    },
+    target_kind: targetModes[0]
   };
 }
 
@@ -178,9 +271,12 @@ module.exports = {
   PRIMITIVES,
   MAX_FLAT_PARTS,
   MAX_REPEAT_COUNT,
+  MAX_DEFINITION_INSTANCES,
+  MAX_INSTANCE_SETTINGS,
   validateIntentObject,
   validateIntentKeys,
   normalizePrimitiveIntent,
   normalizePrimitiveParts,
-  normalizePrimitiveRepeat
+  normalizePrimitiveRepeat,
+  normalizeDefinitionInstances
 };
