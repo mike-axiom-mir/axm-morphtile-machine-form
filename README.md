@@ -107,7 +107,8 @@ Node 18 or later; zero runtime dependencies; no secrets or network required.
 
 - IMPLEMENTED: deterministic primitive normalization, bounded flat primitive composition, bounded direct + pattern composition, bounded repeat composition, bounded axis-aligned grid composition, bounded definition-instance composition, bounded repeat definition-setting progression, the existing caller-recipe adapter, and the local envelope used by fixtures.
 - TESTED: the claims named by the local test files once CI for the exact branch head is green.
-- RUNTIME TARGET: MorphTile commit `ef2b3c6986aa1a333247feffc43a8443f17239d0`.
+- RUNTIME TARGET: MorphTile commit `26b89a77f6a90715a6742dc4d084008ba63731b6`.
+- RUNTIME BOUNDARY: caller-owned recipes remain an expert escape hatch; current pinned MorphTile runtime validation is responsible for generic recipe-expression meaning, including `HOLD_RECIPE_NONFINITE_VALUE` when a present numeric expression evaluates non-finite.
 - EXPERIMENTAL: envelope v0.1 and every candidate schema in this foundation.
 - NOT TESTED: visual quality; arbitrary geometry generation; future MorphTile commits beyond the exact pin.
 - HELD: autonomous geometry synthesis, recursive/general nested loop/condition/expression recipe synthesis beyond the fixed rules, caller-authored expressions in bounded settings, multidimensional grid-setting progression, automatic definition discovery, visual proof, and production readiness.

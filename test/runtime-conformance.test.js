@@ -118,3 +118,30 @@ integrationTest("current pinned recipe compiler executes compact bounded repeats
   assert.equal(compiled.T.length, 8, "repeat recipe triangle receipt drifted");
   assert.equal(compiled.P.length, 8 * 9, "repeat recipe position receipt drifted");
 });
+
+integrationTest("current pinned runtime fails closed when the caller-recipe escape hatch loses finite numeric meaning", () => {
+  assert.equal(runtimeCommit, manifest.tested_against.commit, "CI runtime must match machine.json pin");
+  const MorphTile = require(path.resolve(runtimePath));
+  const request = {
+    ...baseRequest,
+    request_id: "runtime-caller-recipe-nonfinite",
+    intent: {
+      name: "nonfinite caller recipe",
+      recipe: [{
+        shape: "plane",
+        pos: [["*", Number.MAX_VALUE, 2], 0, 0]
+      }]
+    }
+  };
+
+  const out = run(request);
+  assert.equal(out.status, "CANDIDATE", "Form Machine preserves the caller-owned recipe for runtime validation");
+  assert.ok(out.warnings.some((warning) => warning.code === "CALLER_RECIPE_RUNTIME_VALIDATION_REQUIRED"));
+
+  const tile = MorphTile.createTile(out.candidate);
+  const validity = MorphTile.validateTile(tile);
+  assert.equal(validity.ok, true, validity.errors.join(", "));
+
+  const compiled = MorphTile.compileMesh(tile);
+  assert.equal(compiled.hold, "HOLD_RECIPE_NONFINITE_VALUE");
+});
