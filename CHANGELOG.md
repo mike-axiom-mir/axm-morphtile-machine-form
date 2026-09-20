@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.6.0 — 2026-09-20
+
+- Added `intent.grid` for bounded deterministic axis-aligned 1D/2D/3D composition using one normalized primitive part or definition instance.
+- Added fail-closed validation for three-axis integer counts, finite spacing, active-axis non-zero step, exactly one target, and a 2..64 total-cell budget.
+- Compiles active grid axes into MorphTile's existing nested recipe-loop substrate with fixed `gx`, `gy`, and `gz` loop variables rather than materializing copied parts.
+- Reuses the existing primitive and definition-instance vocabularies, including definition `with`, transforms and scale.
+- Added exact runtime-conformance receipts for a six-plane primitive grid and a four-cell definition grid against the current pinned MorphTile runtime.
+- Kept arbitrary nested-loop, condition and expression synthesis HELD; the grid is a fixed deterministic creation rule, not a general recipe-language authoring surface.
+
 ## 0.5.0 — 2026-09-20
 
 - Added `intent.instances` for bounded deterministic reuse of 1..64 existing MorphTile definitions through recipe `use` parts.

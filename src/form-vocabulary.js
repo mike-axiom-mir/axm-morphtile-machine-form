@@ -9,11 +9,14 @@ const INTENT_KEYS = Object.freeze({
   recipe: new Set(["name", "recipe", "vars"]),
   parts: new Set(["name", "parts"]),
   repeat: new Set(["name", "repeat"]),
+  grid: new Set(["name", "grid"]),
   instances: new Set(["name", "instances"])
 });
 const REPEAT_KEYS = new Set(["count", "step", "part", "instance"]);
+const GRID_KEYS = new Set(["counts", "step", "part", "instance"]);
 const MAX_FLAT_PARTS = 64;
 const MAX_REPEAT_COUNT = 64;
+const MAX_GRID_INSTANCES = 64;
 const MAX_DEFINITION_INSTANCES = 64;
 const MAX_INSTANCE_SETTINGS = 32;
 
@@ -267,10 +270,79 @@ function normalizePrimitiveRepeat(repeat) {
   };
 }
 
+function normalizeGrid(grid) {
+  if (!grid || typeof grid !== "object" || Array.isArray(grid)) {
+    return hold("HOLD_FORM_GRID_INVALID", "grid must be an object");
+  }
+
+  const unknown = Object.keys(grid).filter((key) => !GRID_KEYS.has(key)).sort();
+  if (unknown.length) {
+    return hold("HOLD_FORM_PARAMETER_UNKNOWN", `grid has unsupported field(s): ${unknown.join(", ")}`);
+  }
+
+  if (!Array.isArray(grid.counts) || grid.counts.length !== 3) {
+    return hold("HOLD_FORM_GRID_INVALID", "grid.counts must be three integers");
+  }
+  const counts = [];
+  for (let axis = 0; axis < 3; axis++) {
+    const count = boundedInteger(grid.counts[axis], `grid.counts[${axis}]`, 1, MAX_GRID_INSTANCES);
+    if (!count.ok) return hold("HOLD_FORM_GRID_INVALID", count.hold.detail);
+    counts.push(count.value);
+  }
+
+  const totalInstances = counts[0] * counts[1] * counts[2];
+  if (totalInstances < 2 || totalInstances > MAX_GRID_INSTANCES) {
+    return hold("HOLD_FORM_GRID_INVALID", `grid must create 2 to ${MAX_GRID_INSTANCES} total instances`);
+  }
+
+  if (grid.step === undefined) {
+    return hold("HOLD_FORM_GRID_INVALID", "grid.step is required");
+  }
+  const step = vec3(grid.step, "grid.step");
+  if (!step.ok) return hold("HOLD_FORM_GRID_INVALID", step.hold.detail);
+  for (let axis = 0; axis < 3; axis++) {
+    if (counts[axis] > 1 && step.value[axis] === 0) {
+      return hold("HOLD_FORM_GRID_INVALID", `grid.step[${axis}] must be non-zero when grid.counts[${axis}] is greater than one`);
+    }
+  }
+
+  const targetModes = ["part", "instance"].filter((key) => grid[key] !== undefined);
+  if (targetModes.length !== 1) {
+    return hold("HOLD_FORM_GRID_INVALID", "grid must provide exactly one target: part or instance");
+  }
+
+  const target = targetModes[0] === "part"
+    ? normalizePrimitivePart(grid.part, "grid.part")
+    : normalizeDefinitionInstance(grid.instance, "grid.instance");
+  if (!target.ok) return target;
+
+  const basePos = target.data.pos || [0, 0, 0];
+  const axisVars = ["gx", "gy", "gz"];
+  const gridTarget = { ...target.data };
+  gridTarget.pos = basePos.map((base, axis) => {
+    if (counts[axis] === 1) return base;
+    return ["+", base, ["*", ["var", axisVars[axis]], step.value[axis]]];
+  });
+
+  let body = [gridTarget];
+  for (let axis = 2; axis >= 0; axis--) {
+    if (counts[axis] === 1) continue;
+    body = [{ repeat: counts[axis], as: axisVars[axis], body }];
+  }
+
+  return {
+    ok: true,
+    data: body[0],
+    target_kind: targetModes[0],
+    total_instances: totalInstances
+  };
+}
+
 module.exports = {
   PRIMITIVES,
   MAX_FLAT_PARTS,
   MAX_REPEAT_COUNT,
+  MAX_GRID_INSTANCES,
   MAX_DEFINITION_INSTANCES,
   MAX_INSTANCE_SETTINGS,
   validateIntentObject,
@@ -278,5 +350,6 @@ module.exports = {
   normalizePrimitiveIntent,
   normalizePrimitiveParts,
   normalizePrimitiveRepeat,
+  normalizeGrid,
   normalizeDefinitionInstances
 };
