@@ -2,6 +2,10 @@
 
 const PRIMITIVES = Object.freeze(["box", "sphere", "cylinder", "cone", "wedge", "plane"]);
 const RADIAL = new Set(["sphere", "cylinder", "cone"]);
+const PART_KEYS = new Set(["shape", "size", "pos", "rot", "segments", "taper", "sub"]);
+const REPEAT_KEYS = new Set(["count", "step", "part"]);
+const MAX_FLAT_PARTS = 64;
+const MAX_REPEAT_COUNT = 64;
 
 function hold(code, detail) {
   return { ok: false, hold: { code, detail } };
@@ -67,4 +71,84 @@ function normalizePrimitiveIntent(intent = {}) {
   return { ok: true, data };
 }
 
-module.exports = { PRIMITIVES, normalizePrimitiveIntent };
+function normalizePrimitivePart(part, index) {
+  if (!part || typeof part !== "object" || Array.isArray(part)) {
+    return hold("HOLD_FORM_COMPOSITION_INVALID", `parts[${index}] must be an object`);
+  }
+
+  const unknown = Object.keys(part).filter((key) => !PART_KEYS.has(key)).sort();
+  if (unknown.length) {
+    return hold("HOLD_FORM_PARAMETER_UNKNOWN", `parts[${index}] has unsupported field(s): ${unknown.join(", ")}`);
+  }
+
+  const normalized = normalizePrimitiveIntent(part);
+  if (!normalized.ok) {
+    return hold(normalized.hold.code, `parts[${index}]: ${normalized.hold.detail}`);
+  }
+  return normalized;
+}
+
+function normalizePrimitiveParts(parts) {
+  if (!Array.isArray(parts) || parts.length < 1 || parts.length > MAX_FLAT_PARTS) {
+    return hold("HOLD_FORM_COMPOSITION_INVALID", `parts must contain 1 to ${MAX_FLAT_PARTS} primitive parts`);
+  }
+
+  const normalized = [];
+  for (let i = 0; i < parts.length; i++) {
+    const part = normalizePrimitivePart(parts[i], i);
+    if (!part.ok) return part;
+    normalized.push(part.data);
+  }
+  return { ok: true, data: normalized };
+}
+
+function normalizePrimitiveRepeat(repeat) {
+  if (!repeat || typeof repeat !== "object" || Array.isArray(repeat)) {
+    return hold("HOLD_FORM_REPEAT_INVALID", "repeat must be an object");
+  }
+
+  const unknown = Object.keys(repeat).filter((key) => !REPEAT_KEYS.has(key)).sort();
+  if (unknown.length) {
+    return hold("HOLD_FORM_PARAMETER_UNKNOWN", `repeat has unsupported field(s): ${unknown.join(", ")}`);
+  }
+
+  const count = boundedInteger(repeat.count, "repeat.count", 1, MAX_REPEAT_COUNT);
+  if (!count.ok) return count;
+
+  if (repeat.step === undefined) {
+    return hold("HOLD_FORM_REPEAT_INVALID", "repeat.step is required");
+  }
+  const step = vec3(repeat.step, "repeat.step");
+  if (!step.ok) return step;
+  if (step.value.every((x) => x === 0)) {
+    return hold("HOLD_FORM_REPEAT_INVALID", "repeat.step must move at least one axis; zero-step duplicates identical geometry");
+  }
+
+  const part = normalizePrimitivePart(repeat.part, "repeat.part");
+  if (!part.ok) return part;
+
+  const basePos = part.data.pos || [0, 0, 0];
+  const repeatedPart = { ...part.data };
+  repeatedPart.pos = basePos.map((base, axis) => {
+    const delta = step.value[axis];
+    return delta === 0 ? base : ["+", base, ["*", ["var", "i"], delta]];
+  });
+
+  return {
+    ok: true,
+    data: {
+      repeat: count.value,
+      as: "i",
+      body: [repeatedPart]
+    }
+  };
+}
+
+module.exports = {
+  PRIMITIVES,
+  MAX_FLAT_PARTS,
+  MAX_REPEAT_COUNT,
+  normalizePrimitiveIntent,
+  normalizePrimitiveParts,
+  normalizePrimitiveRepeat
+};

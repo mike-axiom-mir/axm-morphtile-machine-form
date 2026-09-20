@@ -1,0 +1,19 @@
+{
+  "envelope_version": "0.1",
+  "request_id": "runtime-parts-form",
+  "goal": "Compile one bounded primitive-parts composition through the pinned MorphTile recipe runtime",
+  "intent": {
+    "name": "Runtime bounded parts composition proof",
+    "parts": [
+      { "shape": "box", "size": [3, 0.3, 0.6], "pos": [0, 1.5, 0] },
+      { "shape": "cylinder", "size": [0.45, 1.5, 0.45], "pos": [-1.1, 0.75, 0], "segments": 12 },
+      { "shape": "sphere", "size": [0.7, 0.7, 0.7], "pos": [1.1, 1.5, 0], "segments": 12 }
+    ]
+  },
+  "constraints": {
+    "budget": 64
+  },
+  "provenance": {
+    "caller": "runtime-conformance-fixture"
+  }
+}
