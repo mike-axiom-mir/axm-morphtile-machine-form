@@ -55,7 +55,24 @@ test("repeat.scale_step compiles bounded positive vector scale progression for d
   ]);
 });
 
-test("repeat.scale_step can start from MorphTile's implicit unit scale", () => {
+test("vector repeat.scale_step may start from MorphTile's implicit unit vector scale", () => {
+  const out = run(request({
+    repeat: {
+      count: 3,
+      step: [0, 1, 0],
+      scale_step: [0.2, 0, -0.1],
+      instance: { use: "panel" }
+    }
+  }, "repeat-vector-scale-default"));
+  assert.equal(out.status, "CANDIDATE");
+  assert.deepEqual(firstTarget(out).scale, [
+    ["+", 1, ["*", ["var", "i"], 0.2]],
+    1,
+    ["+", 1, ["*", ["var", "i"], -0.1]]
+  ]);
+});
+
+test("scalar repeat.scale_step can start from MorphTile's implicit unit scale", () => {
   const out = run(request({
     repeat: {
       count: 3,
@@ -91,23 +108,32 @@ test("intent.compose reuses the bounded definition scale progression rule", () =
     compose: [{ repeat: {
       count: 3,
       step: [0, 0, 1],
-      scale_step: 0.15,
-      instance: { use: "panel", scale: 0.7 }
+      scale_step: [0.15, 0, -0.1],
+      instance: { use: "panel", scale: [0.7, 1, 1.2] }
     } }]
   }, "compose-repeat-scale"));
   assert.equal(out.status, "CANDIDATE");
-  assert.deepEqual(out.candidate.facets.mesh.data.parts[0].body[0].scale, ["+", 0.7, ["*", ["var", "i"], 0.15]]);
+  assert.deepEqual(out.candidate.facets.mesh.data.parts[0].body[0].scale, [
+    ["+", 0.7, ["*", ["var", "i"], 0.15]],
+    1,
+    ["+", 1.2, ["*", ["var", "i"], -0.1]]
+  ]);
 });
 
-test("repeat.scale_step fails closed on malformed, no-op, primitive, single-copy, vector-base, non-positive and overflow domains", () => {
+test("repeat.scale_step fails closed on malformed, no-op, target mismatch, base mismatch, non-positive and overflow domains", () => {
   const cases = [
-    { id: "malformed", repeat: { count: 3, step: [1,0,0], scale_step: [0.1,0,0], instance: { use: "panel" } } },
-    { id: "noop", repeat: { count: 3, step: [1,0,0], scale_step: 0, instance: { use: "panel" } } },
+    { id: "malformed-vector", repeat: { count: 3, step: [1,0,0], scale_step: [0.1,0], instance: { use: "panel", scale: [1,1,1] } } },
+    { id: "nonfinite-vector", repeat: { count: 3, step: [1,0,0], scale_step: [0.1,Infinity,0], instance: { use: "panel", scale: [1,1,1] } } },
+    { id: "noop-scalar", repeat: { count: 3, step: [1,0,0], scale_step: 0, instance: { use: "panel" } } },
+    { id: "noop-vector", repeat: { count: 3, step: [1,0,0], scale_step: [0,0,0], instance: { use: "panel", scale: [1,1,1] } } },
     { id: "primitive", repeat: { count: 3, step: [1,0,0], scale_step: 0.1, part: { shape: "box" } } },
     { id: "single", repeat: { count: 1, step: [1,0,0], scale_step: 0.1, instance: { use: "panel" } } },
-    { id: "vector-base", repeat: { count: 3, step: [1,0,0], scale_step: 0.1, instance: { use: "panel", scale: [1,1,1] } } },
-    { id: "nonpositive", repeat: { count: 3, step: [1,0,0], scale_step: -0.6, instance: { use: "panel", scale: 1 } } },
-    { id: "overflow", repeat: { count: 2, step: [1,0,0], scale_step: Number.MAX_VALUE, instance: { use: "panel", scale: Number.MAX_VALUE } } }
+    { id: "scalar-step-vector-base", repeat: { count: 3, step: [1,0,0], scale_step: 0.1, instance: { use: "panel", scale: [1,1,1] } } },
+    { id: "vector-step-scalar-base", repeat: { count: 3, step: [1,0,0], scale_step: [0.1,0,0], instance: { use: "panel", scale: 1 } } },
+    { id: "nonpositive-scalar", repeat: { count: 3, step: [1,0,0], scale_step: -0.6, instance: { use: "panel", scale: 1 } } },
+    { id: "nonpositive-vector", repeat: { count: 3, step: [1,0,0], scale_step: [0,-0.6,0], instance: { use: "panel", scale: [1,1,1] } } },
+    { id: "overflow-scalar", repeat: { count: 2, step: [1,0,0], scale_step: Number.MAX_VALUE, instance: { use: "panel", scale: Number.MAX_VALUE } } },
+    { id: "overflow-vector", repeat: { count: 2, step: [1,0,0], scale_step: [Number.MAX_VALUE,0,0], instance: { use: "panel", scale: [Number.MAX_VALUE,1,1] } } }
   ];
   for (const item of cases) {
     const out = run(request({ repeat: item.repeat }, `repeat-scale-${item.id}`));
@@ -121,23 +147,9 @@ const runtimePath = process.env.MORPHTILE_CORE_PATH;
 const runtimeCommit = process.env.MORPHTILE_COMMIT;
 const integrationTest = runtimePath ? test : test.skip;
 
-integrationTest("pinned MorphTile runtime executes Form-generated definition scale progression as finite changing geometry", () => {
+integrationTest("pinned MorphTile runtime executes scalar and vector definition scale progression as finite changing geometry", () => {
   assert.equal(runtimeCommit, manifest.tested_against.commit);
   const MorphTile = require(path.resolve(runtimePath));
-
-  const growing = run(request({ repeat: {
-    count: 3,
-    step: [2, 0, 0],
-    scale_step: 0.25,
-    instance: { use: "panel", scale: 0.5 }
-  } }, "runtime-repeat-scale"));
-  const fixed = run(request({ repeat: {
-    count: 3,
-    step: [2, 0, 0],
-    instance: { use: "panel", scale: 0.5 }
-  } }, "runtime-repeat-scale-fixed"));
-  assert.equal(growing.status, "CANDIDATE");
-  assert.equal(fixed.status, "CANDIDATE");
 
   function compile(candidate) {
     const world = MorphTile.createWorld("Form scale proof");
@@ -158,11 +170,43 @@ integrationTest("pinned MorphTile runtime executes Form-generated definition sca
     return MorphTile.compileMesh(tile, world);
   }
 
-  const growingMesh = compile(growing.candidate);
-  const fixedMesh = compile(fixed.candidate);
-  assert.equal(growingMesh.hold, null);
-  assert.equal(fixedMesh.hold, null);
-  assert.ok(growingMesh.P.length > 0);
-  assert.ok(growingMesh.P.every(Number.isFinite));
-  assert.notDeepEqual(growingMesh.P, fixedMesh.P);
+  const scalarGrowing = run(request({ repeat: {
+    count: 3,
+    step: [2, 0, 0],
+    scale_step: 0.25,
+    instance: { use: "panel", scale: 0.5 }
+  } }, "runtime-repeat-scale"));
+  const scalarFixed = run(request({ repeat: {
+    count: 3,
+    step: [2, 0, 0],
+    instance: { use: "panel", scale: 0.5 }
+  } }, "runtime-repeat-scale-fixed"));
+  const vectorGrowing = run(request({ repeat: {
+    count: 3,
+    step: [2, 0, 0],
+    scale_step: [0.25, -0.1, 0],
+    instance: { use: "panel", scale: [0.5, 1.2, 0.8] }
+  } }, "runtime-repeat-vector-scale"));
+  const vectorFixed = run(request({ repeat: {
+    count: 3,
+    step: [2, 0, 0],
+    instance: { use: "panel", scale: [0.5, 1.2, 0.8] }
+  } }, "runtime-repeat-vector-scale-fixed"));
+
+  for (const out of [scalarGrowing, scalarFixed, vectorGrowing, vectorFixed]) {
+    assert.equal(out.status, "CANDIDATE");
+  }
+
+  const scalarGrowingMesh = compile(scalarGrowing.candidate);
+  const scalarFixedMesh = compile(scalarFixed.candidate);
+  const vectorGrowingMesh = compile(vectorGrowing.candidate);
+  const vectorFixedMesh = compile(vectorFixed.candidate);
+
+  for (const mesh of [scalarGrowingMesh, scalarFixedMesh, vectorGrowingMesh, vectorFixedMesh]) {
+    assert.equal(mesh.hold, null);
+    assert.ok(mesh.P.length > 0);
+    assert.ok(mesh.P.every(Number.isFinite));
+  }
+  assert.notDeepEqual(scalarGrowingMesh.P, scalarFixedMesh.P);
+  assert.notDeepEqual(vectorGrowingMesh.P, vectorFixedMesh.P);
 });
