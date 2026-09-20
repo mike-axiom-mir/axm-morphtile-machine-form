@@ -10,6 +10,32 @@ function request(request_id, intent) {
   return { ...base, request_id, intent };
 }
 
+function definitionWorld() {
+  return {
+    defs: {
+      panel: {
+        id: "panel",
+        name: "Parametric panel",
+        created_by: "test",
+        body: {
+          facets: {
+            mesh: {
+              type: "generated",
+              source: null,
+              data: {
+                generator: "recipe",
+                vars: { width: 1 },
+                parts: [{ shape: "plane", size: [["var", "width"], 1, 1] }]
+              }
+            },
+            material: { type: "primitive", source: null, data: { color: [0.5, 0.5, 0.5] } }
+          }
+        }
+      }
+    }
+  };
+}
+
 test("normalizes bounded definition instances deterministically without resolving foreign definitions", () => {
   const input = request("definition-instances", {
     name: "definition instances",
@@ -57,6 +83,39 @@ test("normalizes bounded definition instances deterministically without resolvin
   assert.ok(first.warnings.some((warning) => warning.code === "DEFINITION_RUNTIME_RESOLUTION_REQUIRED"));
 });
 
+test("repeats one bounded definition instance through the same compact recipe loop", () => {
+  const input = request("repeat-definition-instance", {
+    name: "repeated definition",
+    repeat: {
+      count: 3,
+      step: [2, 0, 0],
+      instance: {
+        use: "panel",
+        with: { width: 2 },
+        pos: [1, 0, 0],
+        scale: 1.25
+      }
+    }
+  });
+
+  const before = JSON.stringify(input);
+  const first = run(input), second = run(input);
+  assert.equal(first.status, "CANDIDATE");
+  assert.deepEqual(first, second);
+  assert.equal(JSON.stringify(input), before);
+  assert.deepEqual(first.candidate.facets.mesh.data.parts, [{
+    repeat: 3,
+    as: "i",
+    body: [{
+      use: "panel",
+      with: { width: 2 },
+      pos: [["+", 1, ["*", ["var", "i"], 2]], 0, 0],
+      scale: 1.25
+    }]
+  }]);
+  assert.ok(first.warnings.some((warning) => warning.code === "DEFINITION_RUNTIME_RESOLUTION_REQUIRED"));
+});
+
 test("definition-instance vocabulary fails closed on ambiguity, malformed references, settings and transforms", () => {
   const cases = [
     ["ambiguous", { parts: [{ shape: "box" }], instances: [{ use: "beam" }] }, "HOLD_FORM_COMPOSITION_AMBIGUOUS"],
@@ -69,7 +128,10 @@ test("definition-instance vocabulary fails closed on ambiguity, malformed refere
     ["too-many-settings", { instances: [{ use: "beam", with: Object.fromEntries(Array.from({ length: 33 }, (_, i) => [`p${i}`, i])) }] }, "HOLD_FORM_DEFINITION_INSTANCE_INVALID"],
     ["zero-scale", { instances: [{ use: "beam", scale: 0 }] }, "HOLD_FORM_PARAMETER_INVALID"],
     ["bad-scale-vector", { instances: [{ use: "beam", scale: [1, -1, 1] }] }, "HOLD_FORM_PARAMETER_INVALID"],
-    ["bad-position", { instances: [{ use: "beam", pos: [0, 1] }] }, "HOLD_FORM_PARAMETER_INVALID"]
+    ["bad-position", { instances: [{ use: "beam", pos: [0, 1] }] }, "HOLD_FORM_PARAMETER_INVALID"],
+    ["repeat-no-target", { repeat: { count: 2, step: [1, 0, 0] } }, "HOLD_FORM_REPEAT_INVALID"],
+    ["repeat-two-targets", { repeat: { count: 2, step: [1, 0, 0], part: { shape: "box" }, instance: { use: "beam" } } }, "HOLD_FORM_REPEAT_INVALID"],
+    ["repeat-bad-instance", { repeat: { count: 2, step: [1, 0, 0], instance: { use: "beam", color: [1, 0, 0] } } }, "HOLD_FORM_PARAMETER_UNKNOWN"]
   ];
 
   for (const [id, intent, code] of cases) {
@@ -112,30 +174,7 @@ integrationTest("current pinned MorphTile runtime resolves bounded definition in
   const validity = MorphTile.validateTile(tile);
   assert.equal(validity.ok, true, validity.errors.join(", "));
 
-  const world = {
-    defs: {
-      panel: {
-        id: "panel",
-        name: "Parametric panel",
-        created_by: "test",
-        body: {
-          facets: {
-            mesh: {
-              type: "generated",
-              source: null,
-              data: {
-                generator: "recipe",
-                vars: { width: 1 },
-                parts: [{ shape: "plane", size: [["var", "width"], 1, 1] }]
-              }
-            },
-            material: { type: "primitive", source: null, data: { color: [0.5, 0.5, 0.5] } }
-          }
-        }
-      }
-    }
-  };
-
+  const world = definitionWorld();
   const first = MorphTile.compileMesh(tile, world);
   const second = MorphTile.compileMesh(tile, world);
   assert.deepEqual(first, second);
@@ -146,4 +185,25 @@ integrationTest("current pinned MorphTile runtime resolves bounded definition in
 
   const unresolved = MorphTile.compileMesh(tile);
   assert.equal(unresolved.hold, "HOLD_NO_WORLD_TO_LOOK_IN");
+});
+
+integrationTest("current pinned MorphTile runtime compiles a compact repeated definition instance", () => {
+  assert.equal(runtimeCommit, manifest.tested_against.commit, "CI runtime must match machine.json pin");
+  const MorphTile = require(path.resolve(runtimePath));
+
+  const out = run(request("runtime-repeat-definition", {
+    repeat: {
+      count: 3,
+      step: [2, 0, 0],
+      instance: { use: "panel", with: { width: 2 } }
+    }
+  }));
+  assert.equal(out.status, "CANDIDATE");
+
+  const tile = MorphTile.createTile(out.candidate);
+  const compiled = MorphTile.compileMesh(tile, definitionWorld());
+  assert.equal(compiled.hold, null);
+  assert.equal(compiled.recipe_parts, 3);
+  assert.equal(compiled.T.length, 6, "three reused planes should compile to six triangles");
+  assert.equal(compiled.P.length, 54, "six triangles should carry 54 position scalars");
 });
