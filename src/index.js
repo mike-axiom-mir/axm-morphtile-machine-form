@@ -53,7 +53,8 @@ function run(request) {
     const repeated = normalizePrimitiveRepeat(intent.repeat);
     if (!repeated.ok) return holdResult(request, repeated.hold);
     mesh = { type: "generated", source: null, data: { generator: "recipe", vars: {}, parts: [repeated.data] } };
-    check = `bounded primitive repeat normalized into a compact MorphTile recipe (${repeated.data.repeat} instances)`;
+    check = `bounded ${repeated.target_kind === "instance" ? "definition-instance" : "primitive"} repeat normalized into a compact MorphTile recipe (${repeated.data.repeat} instances)`;
+    if (repeated.target_kind === "instance") warnings.push({ code: "DEFINITION_RUNTIME_RESOLUTION_REQUIRED" });
   } else if (mode === "instances") {
     const instances = normalizeDefinitionInstances(intent.instances);
     if (!instances.ok) return holdResult(request, instances.hold);
