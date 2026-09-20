@@ -72,7 +72,7 @@ Node 18 or later; zero runtime dependencies; no secrets or network required.
 
 - IMPLEMENTED: deterministic primitive normalization, bounded flat primitive composition, bounded repeat composition for primitives and definition instances, bounded definition-instance composition, the existing caller-recipe adapter, and the local envelope used by fixtures.
 - TESTED: the claims named by the local test files once CI for the exact branch head is green.
-- RUNTIME TARGET: MorphTile commit `a579182ae585e5722ac87dd0cc8209963b18d000`.
+- RUNTIME TARGET: MorphTile commit `b6b086edb70fd4657495fcf01cb9fcdedceafdaf`.
 - EXPERIMENTAL: envelope v0.1 and every candidate schema in this foundation.
 - NOT TESTED: visual quality; arbitrary geometry generation; future MorphTile commits beyond the exact pin.
 - HELD: autonomous geometry synthesis, general nested loop/condition/expression recipe synthesis, automatic definition discovery, visual proof, and production readiness.
