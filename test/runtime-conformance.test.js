@@ -146,7 +146,7 @@ integrationTest("current pinned runtime fails closed when the caller-recipe esca
   assert.equal(compiled.hold, "HOLD_RECIPE_NONFINITE_VALUE");
 });
 
-integrationTest("current pinned runtime fails closed when a bounded Form primitive overflows derived mesh coordinates", () => {
+integrationTest("current pinned runtime fails closed when bounded Form primitive values overflow derived mesh coordinates", () => {
   assert.equal(runtimeCommit, manifest.tested_against.commit, "CI runtime must match machine.json pin");
   const MorphTile = require(path.resolve(runtimePath));
   const request = {
@@ -155,7 +155,7 @@ integrationTest("current pinned runtime fails closed when a bounded Form primiti
     intent: {
       name: "derived nonfinite Form primitive",
       shape: "box",
-      size: [1, 1, 1],
+      size: [Number.MAX_VALUE, 1, 1],
       pos: [Number.MAX_VALUE, 0, 0]
     }
   };
@@ -174,7 +174,7 @@ integrationTest("current pinned runtime fails closed when a bounded Form primiti
   assert.deepEqual(compiled.K, []);
 });
 
-integrationTest("current pinned runtime keeps a large finite bounded Form primitive representable", () => {
+integrationTest("current pinned runtime keeps large finite bounded Form primitive values representable", () => {
   assert.equal(runtimeCommit, manifest.tested_against.commit, "CI runtime must match machine.json pin");
   const MorphTile = require(path.resolve(runtimePath));
   const request = {
@@ -183,8 +183,8 @@ integrationTest("current pinned runtime keeps a large finite bounded Form primit
     intent: {
       name: "large finite Form primitive",
       shape: "box",
-      size: [1, 1, 1],
-      pos: [1e150, 0, 0]
+      size: [1e150, 2e150, 3e150],
+      pos: [1e150, -1e150, 1e150]
     }
   };
 
