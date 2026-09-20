@@ -62,6 +62,15 @@ function boundedInteger(value, name, min, max) {
   return { ok: true, value };
 }
 
+function finiteLinearProgression(base, delta, count, name, holdCode) {
+  for (let index = 0; index < count; index++) {
+    if (!Number.isFinite(base + index * delta)) {
+      return hold(holdCode, `${name} produces a non-finite generated value at index ${index}`);
+    }
+  }
+  return { ok: true };
+}
+
 function normalizePrimitiveIntent(intent = {}) {
   const shape = intent.shape;
   if (!PRIMITIVES.includes(shape)) {
@@ -221,7 +230,7 @@ function normalizeDefinitionInstances(instances) {
   return { ok: true, data: normalized };
 }
 
-function normalizeRepeatSettingStep(withStep, target) {
+function normalizeRepeatSettingStep(withStep, target, count) {
   if (!withStep || typeof withStep !== "object" || Array.isArray(withStep)) {
     return hold("HOLD_FORM_REPEAT_INVALID", "repeat.with_step must be an object of finite numeric deltas");
   }
@@ -246,6 +255,14 @@ function normalizeRepeatSettingStep(withStep, target) {
     if (typeof delta !== "number" || !Number.isFinite(delta)) {
       return hold("HOLD_FORM_REPEAT_INVALID", `repeat.with_step.${key} must be a finite number`);
     }
+    const closure = finiteLinearProgression(
+      baseSettings[key],
+      delta,
+      count,
+      `repeat.with_step.${key}`,
+      "HOLD_FORM_REPEAT_INVALID"
+    );
+    if (!closure.ok) return closure;
     changesSetting ||= delta !== 0;
     stepped[key] = delta === 0
       ? baseSettings[key]
@@ -292,6 +309,17 @@ function normalizePrimitiveRepeat(repeat) {
   if (!target.ok) return target;
 
   const basePos = target.data.pos || [0, 0, 0];
+  for (let axis = 0; axis < 3; axis++) {
+    const closure = finiteLinearProgression(
+      basePos[axis],
+      step.value[axis],
+      count.value,
+      `repeat position axis ${axis}`,
+      "HOLD_FORM_REPEAT_INVALID"
+    );
+    if (!closure.ok) return closure;
+  }
+
   const repeatedTarget = { ...target.data };
   repeatedTarget.pos = basePos.map((base, axis) => {
     const delta = step.value[axis];
@@ -302,7 +330,7 @@ function normalizePrimitiveRepeat(repeat) {
     if (targetModes[0] !== "instance") {
       return hold("HOLD_FORM_REPEAT_INVALID", "repeat.with_step is only valid for a definition instance target");
     }
-    const steppedSettings = normalizeRepeatSettingStep(repeat.with_step, target.data);
+    const steppedSettings = normalizeRepeatSettingStep(repeat.with_step, target.data, count.value);
     if (!steppedSettings.ok) return steppedSettings;
     repeatedTarget.with = steppedSettings.data;
   }
@@ -365,6 +393,17 @@ function normalizeGrid(grid) {
   if (!target.ok) return target;
 
   const basePos = target.data.pos || [0, 0, 0];
+  for (let axis = 0; axis < 3; axis++) {
+    const closure = finiteLinearProgression(
+      basePos[axis],
+      step.value[axis],
+      counts[axis],
+      `grid position axis ${axis}`,
+      "HOLD_FORM_GRID_INVALID"
+    );
+    if (!closure.ok) return closure;
+  }
+
   const axisVars = ["gx", "gy", "gz"];
   const gridTarget = { ...target.data };
   gridTarget.pos = basePos.map((base, axis) => {
