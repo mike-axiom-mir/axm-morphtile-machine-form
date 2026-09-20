@@ -13,7 +13,7 @@ test("builds candidate form data without mutating the request", () => {
   const before = JSON.stringify(request), first = run(request), second = run(request);
   assert.equal(first.status, "CANDIDATE");
   assert.deepEqual(first, second);
-  assert.equal(first.machine.version, "0.10.0");
+  assert.equal(first.machine.version, "0.11.0");
   assert.equal(first.candidate.facets.mesh.data.shape, "box");
   assert.equal(JSON.stringify(request), before);
 });
