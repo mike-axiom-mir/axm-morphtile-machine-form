@@ -1,6 +1,7 @@
 "use strict";
 
 const { assertRequest, result } = require("./envelope");
+const { PortableDataError, clonePortableValue, safeRequestId } = require("./portable");
 const {
   validateIntentObject,
   validateIntentKeys,
@@ -14,7 +15,7 @@ const {
   validateComposeIntentKeys,
   normalizeMixedComposition
 } = require("./mixed-composition");
-const MACHINE = { id: "axm.morphtile.machine.form", version: "0.9.0" };
+const MACHINE = { id: "axm.morphtile.machine.form", version: "0.10.0" };
 
 function holdResult(request, hold, suggested_missing_capability = null) {
   return result(request, MACHINE, "HOLD", {
@@ -23,7 +24,34 @@ function holdResult(request, hold, suggested_missing_capability = null) {
   });
 }
 
+function portableInputHold(request, error) {
+  const safeRequest = {
+    envelope_version: "0.1",
+    request_id: safeRequestId(request) || "form-nonportable-input",
+    goal: "Reject non-portable Form input before geometry transport",
+    provenance: {}
+  };
+  return result(safeRequest, MACHINE, "HOLD", {
+    holds: [error.toHold()],
+    provenance: {},
+    evidence: [{
+      kind: "INPUT_PORTABILITY",
+      status: "HOLD",
+      check: "caller-authored Form request data is inspected without invoking serialization hooks or accessors before geometry normalization and result transport"
+    }]
+  });
+}
+
 function run(request) {
+  let portableRequest;
+  try {
+    portableRequest = clonePortableValue(request, "request");
+  } catch (error) {
+    if (error instanceof PortableDataError) return portableInputHold(request, error);
+    throw error;
+  }
+  request = portableRequest;
+
   assertRequest(request);
   const intent = request.intent === undefined ? {} : request.intent;
   const validIntent = validateIntentObject(intent);

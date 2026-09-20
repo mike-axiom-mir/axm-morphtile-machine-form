@@ -84,26 +84,26 @@ test("repeat setting progression fails closed outside its bounded definition-ins
   const cases = [
     ["primitive-target", {
       repeat: { count: 3, step: [1, 0, 0], part: { shape: "box" }, with_step: { width: 1 } }
-    }],
+    }, "HOLD_FORM_REPEAT_INVALID"],
     ["missing-base", {
       repeat: { count: 3, step: [1, 0, 0], instance: { use: "panel", with: { width: 1 } }, with_step: { depth: 1 } }
-    }],
+    }, "HOLD_FORM_REPEAT_INVALID"],
     ["empty-step", {
       repeat: { count: 3, step: [1, 0, 0], instance: { use: "panel", with: { width: 1 } }, with_step: {} }
-    }],
+    }, "HOLD_FORM_REPEAT_INVALID"],
     ["zero-only", {
       repeat: { count: 3, step: [1, 0, 0], instance: { use: "panel", with: { width: 1 } }, with_step: { width: 0 } }
-    }],
+    }, "HOLD_FORM_REPEAT_INVALID"],
     ["non-finite", {
       repeat: { count: 3, step: [1, 0, 0], instance: { use: "panel", with: { width: 1 } }, with_step: { width: Infinity } }
-    }]
+    }, "HOLD_FORM_INPUT_NONFINITE_VALUE"]
   ];
 
-  for (const [id, intent] of cases) {
+  for (const [id, intent, expectedCode] of cases) {
     const out = run(request(id, intent));
     assert.equal(out.status, "HOLD", id);
     assert.equal(out.candidate, null, id);
-    assert.equal(out.holds[0].code, "HOLD_FORM_REPEAT_INVALID", id);
+    assert.equal(out.holds[0].code, expectedCode, id);
   }
 });
 
