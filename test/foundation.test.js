@@ -13,7 +13,7 @@ test("builds candidate form data without mutating the request", () => {
   const before = JSON.stringify(request), first = run(request), second = run(request);
   assert.equal(first.status, "CANDIDATE");
   assert.deepEqual(first, second);
-  assert.equal(first.machine.version, "0.3.0");
+  assert.equal(first.machine.version, "0.4.0");
   assert.equal(first.candidate.facets.mesh.data.shape, "box");
   assert.equal(JSON.stringify(request), before);
 });
@@ -121,13 +121,51 @@ test("normalizes a flat primitive composition deterministically without mutating
   });
 });
 
-test("fails closed on ambiguous, oversized, unsupported, or unknown-field compositions", () => {
+test("normalizes a bounded primitive repeat into compact parametric recipe matter", () => {
+  const input = withIntent("repeat-proof", {
+    name: "repeat proof",
+    repeat: {
+      count: 4,
+      step: [1.5, 0.5, 0],
+      part: { shape: "wedge", size: [1, 2, 3], pos: [2, 0, 0], rot: [0, 0.25, 0] }
+    }
+  });
+  const before = JSON.stringify(input), first = run(input), second = run(input);
+  assert.equal(first.status, "CANDIDATE");
+  assert.deepEqual(first, second);
+  assert.equal(JSON.stringify(input), before);
+  assert.deepEqual(first.candidate.facets.mesh, {
+    type: "generated",
+    source: null,
+    data: {
+      generator: "recipe",
+      vars: {},
+      parts: [{
+        repeat: 4,
+        as: "i",
+        body: [{
+          shape: "wedge",
+          size: [1, 2, 3],
+          pos: [["+", 2, ["*", ["var", "i"], 1.5]], ["+", 0, ["*", ["var", "i"], 0.5]], 0],
+          rot: [0, 0.25, 0]
+        }]
+      }]
+    }
+  });
+});
+
+test("fails closed on ambiguous, oversized, unsupported, unknown-field, or duplicate repeats", () => {
   const cases = [
     ["ambiguous", { parts: [{ shape: "box" }], recipe: [{ shape: "box" }] }, "HOLD_FORM_COMPOSITION_AMBIGUOUS"],
+    ["repeat-ambiguous", { parts: [{ shape: "box" }], repeat: { count: 2, step: [1, 0, 0], part: { shape: "box" } } }, "HOLD_FORM_COMPOSITION_AMBIGUOUS"],
     ["empty", { parts: [] }, "HOLD_FORM_COMPOSITION_INVALID"],
     ["too-many", { parts: Array.from({ length: 65 }, () => ({ shape: "box" })) }, "HOLD_FORM_COMPOSITION_INVALID"],
     ["bad-shape", { parts: [{ shape: "dragon" }] }, "HOLD_FORM_VOCABULARY_MISSING"],
-    ["unknown-field", { parts: [{ shape: "box", color: [1, 0, 0] }] }, "HOLD_FORM_PARAMETER_UNKNOWN"]
+    ["unknown-field", { parts: [{ shape: "box", color: [1, 0, 0] }] }, "HOLD_FORM_PARAMETER_UNKNOWN"],
+    ["repeat-zero", { repeat: { count: 2, step: [0, 0, 0], part: { shape: "box" } } }, "HOLD_FORM_REPEAT_INVALID"],
+    ["repeat-too-many", { repeat: { count: 65, step: [1, 0, 0], part: { shape: "box" } } }, "HOLD_FORM_PARAMETER_INVALID"],
+    ["repeat-field", { repeat: { count: 2, step: [1, 0, 0], spacing: 1, part: { shape: "box" } } }, "HOLD_FORM_PARAMETER_UNKNOWN"],
+    ["repeat-part-field", { repeat: { count: 2, step: [1, 0, 0], part: { shape: "box", color: [1, 0, 0] } } }, "HOLD_FORM_PARAMETER_UNKNOWN"]
   ];
 
   for (const [id, intent, code] of cases) {
