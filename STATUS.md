@@ -3,7 +3,7 @@
 - Foundation version: 0.9.0
 - State: CANDIDATE — EXACT-HEAD CI REQUIRED
 - Local test command: npm test
-- Pinned runtime target: MorphTile v0.4 at 26b89a77f6a90715a6742dc4d084008ba63731b6
+- Pinned runtime target: MorphTile v0.4 at 429a344f7d9333bef01cf9de1c292c3af09abec2
 - Envelope: provisional v0.1
 - Visual proof: none
 
@@ -25,17 +25,22 @@
 - Each stepped setting compiles to `base + i * delta` using the fixed repeat-loop index; callers still do not author arbitrary expression trees.
 - Generated repeat/grid/progression expressions are checked over their complete bounded domain before emission so non-finite expansions HOLD in Form Machine.
 
-## Current candidate: merged-core compatibility re-pin
+## Current candidate: merged mesh-finite core compatibility re-proof
 
-MorphTile core has now integrated the universal recipe rule originally exposed by Form review: omitted optional numeric values may retain their existing defaults, but present recipe expressions that evaluate to non-finite numeric meaning HOLD with `HOLD_RECIPE_NONFINITE_VALUE`.
+MorphTile core has now integrated the universal compiled-geometry rule exposed from the Form lane: finite authored values do not guarantee finite derived mesh coordinates. Current core fails closed with `HOLD_MESH_NONFINITE_VALUE` and clears partial `P/T/K` if mesh compilation produces non-finite positions.
 
-This candidate moves Form Machine's exact runtime pin from the pre-integration core to current MorphTile main `26b89a77f6a90715a6742dc4d084008ba63731b6` and adds a focused receiver probe for the caller-recipe escape hatch. The probe preserves the caller-owned recipe in Form output, then requires real MorphTile compilation to expose `HOLD_RECIPE_NONFINITE_VALUE` rather than silently substituting an ordinary geometry default.
+This candidate advances Form Machine's exact runtime pin from `26b89a77f6a90715a6742dc4d084008ba63731b6` to current MorphTile main `429a344f7d9333bef01cf9de1c292c3af09abec2`. It keeps Form Machine at v0.9.0 and does not widen the request vocabulary.
 
-No Form request vocabulary or version is widened by this evidence update.
+The receiver proof now covers both runtime truth boundaries relevant to Form output:
+
+- caller-owned recipe expressions that evaluate non-finite -> `HOLD_RECIPE_NONFINITE_VALUE`;
+- an ordinary bounded Form primitive whose finite authored placement overflows during mesh arithmetic -> `HOLD_MESH_NONFINITE_VALUE` with empty `P/T/K`.
+
+A large finite primitive placement remains accepted and compiles to finite positions, so the new mesh receipt is not blanket rejection.
 
 ## Placement
 
-The non-finite runtime rule belongs in MorphTile core and is now integrated there. Form Machine owns finite-domain checks for the bounded expressions it generates and exact compatibility evidence for the public runtime it targets. It does not duplicate generic recipe-expression validation.
+Generic recipe-expression meaning and derived mesh finiteness belong in MorphTile core. Form Machine owns finite-domain checks for bounded expressions it generates, normalization of finite authored form intent, and exact compatibility evidence for the public runtime it targets. It does not duplicate the core mesh arithmetic guard.
 
 Dependency closure and provenance remain Assembly Machine concerns. Surface/color remains Surface Machine territory.
 
