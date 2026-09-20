@@ -1,13 +1,13 @@
 # Status
 
-- Foundation version: 0.9.0
-- State: CANDIDATE — EXACT-HEAD CI REQUIRED
+- Foundation version: 0.10.0
+- State: CANDIDATE — EXACT-HEAD CI + INDEPENDENT REVIEW REQUIRED
 - Local test command: npm test
 - Pinned runtime target: MorphTile v0.4 at 429a344f7d9333bef01cf9de1c292c3af09abec2
 - Envelope: provisional v0.1
 - Visual proof: none
 
-## Implemented on main
+## Integrated behavior inherited by this candidate
 
 - Explicit primitive form vocabulary: box, sphere, cylinder, cone, wedge, plane.
 - Bounded validation for primitive-local geometry parameters.
@@ -24,31 +24,34 @@
 - Every stepped key must already have a finite numeric base in `instance.with`; the machine does not invent definition defaults or setting names.
 - Each stepped setting compiles to `base + i * delta` using the fixed repeat-loop index; callers still do not author arbitrary expression trees.
 - Generated repeat/grid/progression expressions are checked over their complete bounded domain before emission so non-finite expansions HOLD in Form Machine.
+- The exact integrated receiver proof targets MorphTile `429a344f7d9333bef01cf9de1c292c3af09abec2`, including `HOLD_RECIPE_NONFINITE_VALUE` and `HOLD_MESH_NONFINITE_VALUE` runtime boundaries.
 
-## Current candidate: merged mesh-finite core compatibility re-proof
+## 0.10.0 candidate — authored geometry source integrity before transport
 
-MorphTile core has now integrated the universal compiled-geometry rule exposed from the Form lane: finite authored values do not guarantee finite derived mesh coordinates. Current core fails closed with `HOLD_MESH_NONFINITE_VALUE` and clears partial `P/T/K` if mesh compilation produces non-finite positions.
+Form Machine previously normalized bounded form intent but still relied on JSON cloning while publishing results. The expert caller-recipe path deliberately leaves recipe semantics to MorphTile runtime; because those recipe objects were carried directly into the candidate before result cloning, caller-controlled accessors or `toJSON` hooks could execute during serialization, while non-finite numbers and other non-portable JavaScript values could be rewritten or dropped before the runtime ever saw the authored geometry.
 
-This candidate advances Form Machine's exact runtime pin from `26b89a77f6a90715a6742dc4d084008ba63731b6` to current MorphTile main `429a344f7d9333bef01cf9de1c292c3af09abec2`. It keeps Form Machine at v0.9.0 and does not widen the request vocabulary.
+This candidate performs a descriptor-safe portable-data preflight over the complete caller request before any form normalization or result transport. It does not invoke accessors or serialization hooks while deciding whether the request can be preserved exactly.
 
-The receiver proof now covers both runtime truth boundaries relevant to Form output:
+Typed outcomes:
 
-- caller-owned recipe expressions that evaluate non-finite -> `HOLD_RECIPE_NONFINITE_VALUE`;
-- an ordinary bounded Form primitive whose finite authored position + size combination overflows during mesh arithmetic -> `HOLD_MESH_NONFINITE_VALUE` with empty `P/T/K`.
+- `HOLD_FORM_INPUT_NONFINITE_VALUE` for `NaN` or infinite authored numbers;
+- `HOLD_FORM_INPUT_NONPORTABLE_VALUE` for values/structures portable JSON cannot preserve exactly, including `undefined`, functions (therefore caller `toJSON` hooks), symbols, bigint, `-0`, sparse/decorated arrays, accessors, symbol-keyed properties, cycles, non-plain objects and non-enumerable authored fields.
 
-A large finite primitive position + size control remains accepted and compiles to finite positions, so the new mesh receipt is not blanket rejection.
+Each HOLD carries the exact authored path and emits no candidate. Ordinary portable caller recipes continue through the existing expert recipe path unchanged, and MorphTile remains authoritative for the meaning/runtime validity of that portable recipe.
 
 ## Placement
 
-Generic recipe-expression meaning and derived mesh finiteness belong in MorphTile core. Form Machine owns finite-domain checks for bounded expressions it generates, normalization of finite authored form intent, and exact compatibility evidence for the public runtime it targets. It does not duplicate the core mesh arithmetic guard.
+This rule belongs in Form Machine, not MorphTile core. It protects Form's producer-side authored request before Form's own JSON-backed envelope/result transport can change it. MorphTile already owns portable recipe-expression meaning and compiled-mesh finiteness once geometry reaches the runtime.
 
-Dependency closure and provenance remain Assembly Machine concerns. Surface/color remains Surface Machine territory.
+Dependency closure and provenance aggregation remain Assembly Machine concerns. Surface/color remains Surface Machine territory. The same general source-integrity class has appeared in sibling machines, but this implementation is Form-owned because Form owns preservation of its authored geometry request.
 
 ## Evidence boundary
 
-The candidate earns current-core compatibility only when GitHub Actions is green on its exact head. Future MorphTile commits remain unproven until separately executed. A green core main workflow by itself is not Form compatibility evidence; Form's own exact-head workflow must execute against the pinned core.
+The candidate earns technical validity only if GitHub Actions is green on its exact head against the pinned MorphTile runtime. The regression-first commit remains useful failure evidence only; it is not a production claim. Independent Verification should replay the final exact head, especially accessor and `toJSON` non-execution, non-finite recipe preservation failure, and an ordinary portable recipe control.
 
 ## HELD / open
+
+Independent Verification of the final exact candidate head.
 
 No arbitrary geometry generation, autonomous form invention, recursive/general nested-loop synthesis, conditions, arbitrary expression synthesis, multidimensional grid-setting progression, automatic definition discovery, visual proof, or aesthetic acceptance.
 
