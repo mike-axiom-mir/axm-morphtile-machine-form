@@ -4,9 +4,10 @@
 
 - Added `intent.instances` for bounded deterministic reuse of 1..64 existing MorphTile definitions through recipe `use` parts.
 - Added fail-closed validation for definition ids, up to 32 finite numeric `with` settings, finite position/rotation, and positive scalar/vector scale.
+- Extended compact `intent.repeat` so its single target may be either a bounded primitive part or a bounded definition instance; both compile into MorphTile's existing loop/index substrate.
 - Kept definition discovery, body copying, dependency closure, provenance and merge authority outside Form Machine.
-- Added explicit `DEFINITION_RUNTIME_RESOLUTION_REQUIRED` warning because a valid reference still depends on the runtime world's definitions.
-- Advanced the exact runtime pin to MorphTile `a579182ae585e5722ac87dd0cc8209963b18d000` and added runtime conformance for resolved definition reuse, parametric settings, deterministic receipts and missing-world HOLD behavior.
+- Added explicit `DEFINITION_RUNTIME_RESOLUTION_REQUIRED` warnings because a valid reference still depends on the runtime world's definitions.
+- Advanced the exact runtime pin to MorphTile `a579182ae585e5722ac87dd0cc8209963b18d000` and added runtime conformance for resolved definition reuse, parametric settings, repeated definition use, deterministic receipts and missing-world HOLD behavior.
 
 ## 0.4.0 — 2026-09-20
 
