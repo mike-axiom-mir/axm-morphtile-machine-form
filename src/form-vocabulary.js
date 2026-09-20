@@ -3,12 +3,37 @@
 const PRIMITIVES = Object.freeze(["box", "sphere", "cylinder", "cone", "wedge", "plane"]);
 const RADIAL = new Set(["sphere", "cylinder", "cone"]);
 const PART_KEYS = new Set(["shape", "size", "pos", "rot", "segments", "taper", "sub"]);
+const INTENT_KEYS = Object.freeze({
+  primitive: new Set(["name", ...PART_KEYS]),
+  recipe: new Set(["name", "recipe", "vars"]),
+  parts: new Set(["name", "parts"]),
+  repeat: new Set(["name", "repeat"])
+});
 const REPEAT_KEYS = new Set(["count", "step", "part"]);
 const MAX_FLAT_PARTS = 64;
 const MAX_REPEAT_COUNT = 64;
 
 function hold(code, detail) {
   return { ok: false, hold: { code, detail } };
+}
+
+function validateIntentObject(intent) {
+  if (!intent || typeof intent !== "object" || Array.isArray(intent)) {
+    return hold("HOLD_FORM_INTENT_INVALID", "intent must be an object");
+  }
+  return { ok: true };
+}
+
+function validateIntentKeys(intent, mode) {
+  const valid = validateIntentObject(intent);
+  if (!valid.ok) return valid;
+  const allowed = INTENT_KEYS[mode];
+  if (!allowed) return hold("HOLD_FORM_INTENT_INVALID", `unknown form mode: ${String(mode)}`);
+  const unknown = Object.keys(intent).filter((key) => !allowed.has(key)).sort();
+  if (unknown.length) {
+    return hold("HOLD_FORM_PARAMETER_UNKNOWN", `intent.${mode} has unsupported field(s): ${unknown.join(", ")}`);
+  }
+  return { ok: true };
 }
 
 function vec3(value, name, { positive = false, fallback } = {}) {
@@ -71,19 +96,24 @@ function normalizePrimitiveIntent(intent = {}) {
   return { ok: true, data };
 }
 
+function partLabel(index) {
+  return Number.isInteger(index) ? `parts[${index}]` : String(index || "part");
+}
+
 function normalizePrimitivePart(part, index) {
+  const label = partLabel(index);
   if (!part || typeof part !== "object" || Array.isArray(part)) {
-    return hold("HOLD_FORM_COMPOSITION_INVALID", `parts[${index}] must be an object`);
+    return hold("HOLD_FORM_COMPOSITION_INVALID", `${label} must be an object`);
   }
 
   const unknown = Object.keys(part).filter((key) => !PART_KEYS.has(key)).sort();
   if (unknown.length) {
-    return hold("HOLD_FORM_PARAMETER_UNKNOWN", `parts[${index}] has unsupported field(s): ${unknown.join(", ")}`);
+    return hold("HOLD_FORM_PARAMETER_UNKNOWN", `${label} has unsupported field(s): ${unknown.join(", ")}`);
   }
 
   const normalized = normalizePrimitiveIntent(part);
   if (!normalized.ok) {
-    return hold(normalized.hold.code, `parts[${index}]: ${normalized.hold.detail}`);
+    return hold(normalized.hold.code, `${label}: ${normalized.hold.detail}`);
   }
   return normalized;
 }
@@ -148,6 +178,8 @@ module.exports = {
   PRIMITIVES,
   MAX_FLAT_PARTS,
   MAX_REPEAT_COUNT,
+  validateIntentObject,
+  validateIntentKeys,
   normalizePrimitiveIntent,
   normalizePrimitiveParts,
   normalizePrimitiveRepeat
