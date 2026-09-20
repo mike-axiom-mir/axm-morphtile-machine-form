@@ -4,6 +4,7 @@ const path = require("node:path");
 
 const manifest = require("../machine.json");
 const composedRequest = require("../fixtures/request.composed.json");
+const partsRequest = require("../fixtures/request.parts.json");
 const baseRequest = require("../fixtures/request.box.json");
 const { run } = require("../src");
 
@@ -46,7 +47,7 @@ integrationTest("pinned MorphTile runtime accepts and compiles every emitted pri
   }
 });
 
-integrationTest("pinned recipe compiler executes one composed Form Machine candidate with a bounded receipt", () => {
+integrationTest("pinned recipe compiler executes one caller-supplied composed Form Machine candidate with a bounded receipt", () => {
   assert.equal(runtimeCommit, manifest.tested_against.commit, "CI runtime must match machine.json pin");
   const MorphTile = require(path.resolve(runtimePath));
 
@@ -64,4 +65,25 @@ integrationTest("pinned recipe compiler executes one composed Form Machine candi
   assert.equal(compiled.recipe_parts, 3);
   assert.equal(compiled.T.length, 348, "composed recipe triangle receipt drifted");
   assert.equal(compiled.P.length, 348 * 9, "composed recipe position receipt drifted");
+});
+
+integrationTest("pinned recipe compiler executes normalized bounded parts with the same deterministic receipt", () => {
+  assert.equal(runtimeCommit, manifest.tested_against.commit, "CI runtime must match machine.json pin");
+  const MorphTile = require(path.resolve(runtimePath));
+
+  const result = run(partsRequest);
+  assert.equal(result.status, "CANDIDATE");
+  assert.equal(result.candidate.facets.mesh.type, "generated");
+  assert.equal(result.candidate.facets.mesh.data.generator, "recipe");
+  assert.deepEqual(result.candidate.facets.mesh.data.vars, {});
+
+  const tile = MorphTile.createTile(result.candidate);
+  const validity = MorphTile.validateTile(tile);
+  assert.equal(validity.ok, true, validity.errors.join(", "));
+
+  const compiled = MorphTile.compileMesh(tile);
+  assert.equal(compiled.hold, null);
+  assert.equal(compiled.recipe_parts, 3);
+  assert.equal(compiled.T.length, 348, "bounded parts triangle receipt drifted");
+  assert.equal(compiled.P.length, 348 * 9, "bounded parts position receipt drifted");
 });
