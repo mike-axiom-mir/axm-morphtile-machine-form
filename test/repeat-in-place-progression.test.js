@@ -1,7 +1,9 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
+const path = require("node:path");
 
 const base = require("../fixtures/request.box.json");
+const manifest = require("../machine.json");
 const { run } = require("../src");
 
 function request(request_id, repeat) {
@@ -71,6 +73,25 @@ test("repeat may stay in place when bounded definition setting progression chang
   assert.deepEqual(repeated.body[0].with.width, ["+", 1, ["*", ["var", "i"], 0.5]]);
 });
 
+test("compose reuses the same in-place repeat distinctness rule", () => {
+  const out = run({
+    ...base,
+    request_id: "compose-in-place-size",
+    intent: {
+      name: "compose in-place size",
+      compose: [{ repeat: {
+        count: 3,
+        step: [0, 0, 0],
+        part: { shape: "box", size: [1, 1, 1] },
+        size_step: [0.25, 0, 0]
+      } }]
+    }
+  });
+  assert.equal(out.status, "CANDIDATE");
+  assert.deepEqual(out.candidate.facets.mesh.data.parts[0].body[0].pos, [0, 0, 0]);
+  assert.deepEqual(out.candidate.facets.mesh.data.parts[0].body[0].size[0], ["+", 1, ["*", ["var", "i"], 0.25]]);
+});
+
 test("zero translation without another bounded progression still HOLDs", () => {
   const out = run(request("in-place-no-progression", {
     count: 3,
@@ -90,4 +111,28 @@ test("setting progression requires at least two placements so the authored delta
   }));
   assert.equal(out.status, "HOLD");
   assert.equal(out.holds[0].code, "HOLD_FORM_REPEAT_INVALID");
+});
+
+const runtimePath = process.env.MORPHTILE_CORE_PATH;
+const runtimeCommit = process.env.MORPHTILE_COMMIT;
+const integrationTest = runtimePath ? test : test.skip;
+
+integrationTest("pinned MorphTile runtime compiles in-place progression as finite changing geometry", () => {
+  assert.equal(runtimeCommit, manifest.tested_against.commit, "CI runtime must match machine.json pin");
+  const MorphTile = require(path.resolve(runtimePath));
+
+  const out = run(request("runtime-in-place-size-rotation", {
+    count: 3,
+    step: [0, 0, 0],
+    part: { shape: "box", size: [1, 0.5, 0.5] },
+    size_step: [0.25, 0.1, 0],
+    rot_step: [0, 0, 15]
+  }));
+  assert.equal(out.status, "CANDIDATE");
+
+  const compiled = MorphTile.compileMesh(MorphTile.createTile(out.candidate));
+  assert.equal(compiled.hold, null);
+  assert.equal(compiled.recipe_parts, 3);
+  assert.ok(compiled.P.length > 0);
+  assert.ok(compiled.P.every(Number.isFinite));
 });
