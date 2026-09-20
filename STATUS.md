@@ -30,12 +30,12 @@
 
 Form Machine previously normalized bounded form intent but still relied on JSON cloning while publishing results. The expert caller-recipe path deliberately leaves recipe semantics to MorphTile runtime; because those recipe objects were carried directly into the candidate before result cloning, caller-controlled accessors or `toJSON` hooks could execute during serialization, while non-finite numbers and other non-portable JavaScript values could be rewritten or dropped before the runtime ever saw the authored geometry.
 
-This candidate performs a descriptor-safe portable-data preflight over the complete caller request before any form normalization or result transport. It does not invoke accessors or serialization hooks while deciding whether the request can be preserved exactly.
+This candidate performs a portable-data preflight over the complete caller request before any form normalization or result transport. It reads descriptors rather than invoking accessors, rejects JavaScript Proxy values before prototype/key/descriptor/array reflection, and applies the same ordering while deriving HOLD metadata. That includes revoked root Proxies, which must reach the explicit HOLD rather than escape through `Array.isArray` as an uncaught throw.
 
 Typed outcomes:
 
 - `HOLD_FORM_INPUT_NONFINITE_VALUE` for `NaN` or infinite authored numbers;
-- `HOLD_FORM_INPUT_NONPORTABLE_VALUE` for values/structures portable JSON cannot preserve exactly, including `undefined`, functions (therefore caller `toJSON` hooks), symbols, bigint, `-0`, sparse/decorated arrays, accessors, symbol-keyed properties, cycles, non-plain objects and non-enumerable authored fields.
+- `HOLD_FORM_INPUT_NONPORTABLE_VALUE` for values/structures portable JSON cannot preserve exactly, including `undefined`, functions (therefore caller `toJSON` hooks), symbols, bigint, `-0`, sparse/decorated arrays, accessors, symbol-keyed properties, cycles, non-plain objects, non-enumerable authored fields, and live or revoked JavaScript Proxy values.
 
 Each HOLD carries the exact authored path and emits no candidate. Ordinary portable caller recipes continue through the existing expert recipe path unchanged, and MorphTile remains authoritative for the meaning/runtime validity of that portable recipe.
 
@@ -47,7 +47,7 @@ Dependency closure and provenance aggregation remain Assembly Machine concerns. 
 
 ## Evidence boundary
 
-The candidate earns technical validity only if GitHub Actions is green on its exact head against the pinned MorphTile runtime. The regression-first commit remains useful failure evidence only; it is not a production claim. Independent Verification should replay the final exact head, especially accessor and `toJSON` non-execution, non-finite recipe preservation failure, and an ordinary portable recipe control.
+The candidate earns technical validity only if GitHub Actions is green on its exact head against the pinned MorphTile runtime. The regression-first commits remain useful failure evidence only; they are not production claims. Independent Verification should replay the final exact head, especially accessor and `toJSON` non-execution, live Proxy trap non-execution, revoked-root Proxy fail-closed behavior, non-finite recipe preservation failure, and an ordinary portable recipe control.
 
 ## HELD / open
 

@@ -56,6 +56,70 @@ test("caller recipe toJSON HOLDS without invoking the hook or rewriting geometry
   assert.equal(hold.path, "request.intent.recipe[0].toJSON");
 });
 
+test("caller Proxy HOLDS before descriptor inspection can execute Proxy traps", () => {
+  let calls = 0;
+  const part = new Proxy(
+    { shape: "box", size: [1, 1, 1] },
+    {
+      getPrototypeOf() {
+        calls += 1;
+        throw new Error("proxy getPrototypeOf trap executed");
+      },
+      ownKeys() {
+        calls += 1;
+        throw new Error("proxy ownKeys trap executed");
+      },
+      getOwnPropertyDescriptor() {
+        calls += 1;
+        throw new Error("proxy getOwnPropertyDescriptor trap executed");
+      }
+    }
+  );
+
+  const out = run(request("form-proxy-source-integrity", [part]));
+  const hold = findHold(out, "HOLD_FORM_INPUT_NONPORTABLE_VALUE");
+  assert.equal(calls, 0, "Form must reject caller Proxy values before any Proxy trap can execute");
+  assert.equal(hold.path, "request.intent.recipe[0]");
+});
+
+test("root request Proxy HOLDS without executing Proxy traps while deriving HOLD metadata", () => {
+  let calls = 0;
+  const proxiedRequest = new Proxy(
+    request("form-root-proxy-source-integrity", [{ shape: "box", size: [1, 1, 1] }]),
+    {
+      getPrototypeOf() {
+        calls += 1;
+        throw new Error("root proxy getPrototypeOf trap executed");
+      },
+      ownKeys() {
+        calls += 1;
+        throw new Error("root proxy ownKeys trap executed");
+      },
+      getOwnPropertyDescriptor() {
+        calls += 1;
+        throw new Error("root proxy getOwnPropertyDescriptor trap executed");
+      }
+    }
+  );
+
+  const out = run(proxiedRequest);
+  const hold = findHold(out, "HOLD_FORM_INPUT_NONPORTABLE_VALUE");
+  assert.equal(calls, 0, "Form must not inspect a root Proxy again while constructing its HOLD result");
+  assert.equal(hold.path, "request");
+});
+
+test("revoked root request Proxy HOLDS before throwable array/reflection checks", () => {
+  const revoked = Proxy.revocable(
+    request("form-revoked-root-proxy-source-integrity", [{ shape: "box", size: [1, 1, 1] }]),
+    {}
+  );
+  revoked.revoke();
+
+  const out = run(revoked.proxy);
+  const hold = findHold(out, "HOLD_FORM_INPUT_NONPORTABLE_VALUE");
+  assert.equal(hold.path, "request");
+});
+
 test("non-finite caller recipe values HOLD instead of becoming null during result cloning", () => {
   const out = run(request("form-nonfinite-source-integrity", [
     { shape: "box", pos: [Number.POSITIVE_INFINITY, 0, 0] }
