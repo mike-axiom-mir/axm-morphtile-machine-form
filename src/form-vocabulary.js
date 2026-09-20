@@ -12,13 +12,14 @@ const INTENT_KEYS = Object.freeze({
   grid: new Set(["name", "grid"]),
   instances: new Set(["name", "instances"])
 });
-const REPEAT_KEYS = new Set(["count", "step", "part", "instance"]);
+const REPEAT_KEYS = new Set(["count", "step", "part", "instance", "with_step"]);
 const GRID_KEYS = new Set(["counts", "step", "part", "instance"]);
 const MAX_FLAT_PARTS = 64;
 const MAX_REPEAT_COUNT = 64;
 const MAX_GRID_INSTANCES = 64;
 const MAX_DEFINITION_INSTANCES = 64;
 const MAX_INSTANCE_SETTINGS = 32;
+const SETTING_NAME = /^[A-Za-z_][A-Za-z0-9_.-]{0,63}$/;
 
 function hold(code, detail) {
   return { ok: false, hold: { code, detail } };
@@ -59,6 +60,15 @@ function boundedInteger(value, name, min, max) {
     return hold("HOLD_FORM_PARAMETER_INVALID", `${name} must be an integer from ${min} to ${max}`);
   }
   return { ok: true, value };
+}
+
+function finiteLinearProgression(base, delta, count, name, holdCode) {
+  for (let index = 0; index < count; index++) {
+    if (!Number.isFinite(base + index * delta)) {
+      return hold(holdCode, `${name} produces a non-finite generated value at index ${index}`);
+    }
+  }
+  return { ok: true };
 }
 
 function normalizePrimitiveIntent(intent = {}) {
@@ -170,7 +180,7 @@ function normalizeDefinitionInstance(instance, index) {
     }
     const settings = {};
     for (const key of keys) {
-      if (!/^[A-Za-z_][A-Za-z0-9_.-]{0,63}$/.test(key)) {
+      if (!SETTING_NAME.test(key)) {
         return hold("HOLD_FORM_DEFINITION_INSTANCE_INVALID", `${label}.with contains invalid setting name: ${key}`);
       }
       const value = instance.with[key];
@@ -220,6 +230,52 @@ function normalizeDefinitionInstances(instances) {
   return { ok: true, data: normalized };
 }
 
+function normalizeRepeatSettingStep(withStep, target, count) {
+  if (!withStep || typeof withStep !== "object" || Array.isArray(withStep)) {
+    return hold("HOLD_FORM_REPEAT_INVALID", "repeat.with_step must be an object of finite numeric deltas");
+  }
+
+  const keys = Object.keys(withStep).sort();
+  if (keys.length < 1 || keys.length > MAX_INSTANCE_SETTINGS) {
+    return hold("HOLD_FORM_REPEAT_INVALID", `repeat.with_step must contain 1 to ${MAX_INSTANCE_SETTINGS} setting deltas`);
+  }
+
+  const baseSettings = target.with || {};
+  const stepped = { ...baseSettings };
+  let changesSetting = false;
+
+  for (const key of keys) {
+    if (!SETTING_NAME.test(key)) {
+      return hold("HOLD_FORM_REPEAT_INVALID", `repeat.with_step contains invalid setting name: ${key}`);
+    }
+    if (!Object.prototype.hasOwnProperty.call(baseSettings, key)) {
+      return hold("HOLD_FORM_REPEAT_INVALID", `repeat.with_step.${key} requires a matching finite numeric instance.with.${key} base`);
+    }
+    const delta = withStep[key];
+    if (typeof delta !== "number" || !Number.isFinite(delta)) {
+      return hold("HOLD_FORM_REPEAT_INVALID", `repeat.with_step.${key} must be a finite number`);
+    }
+    const closure = finiteLinearProgression(
+      baseSettings[key],
+      delta,
+      count,
+      `repeat.with_step.${key}`,
+      "HOLD_FORM_REPEAT_INVALID"
+    );
+    if (!closure.ok) return closure;
+    changesSetting ||= delta !== 0;
+    stepped[key] = delta === 0
+      ? baseSettings[key]
+      : ["+", baseSettings[key], ["*", ["var", "i"], delta]];
+  }
+
+  if (!changesSetting) {
+    return hold("HOLD_FORM_REPEAT_INVALID", "repeat.with_step must change at least one setting");
+  }
+
+  return { ok: true, data: stepped };
+}
+
 function normalizePrimitiveRepeat(repeat) {
   if (!repeat || typeof repeat !== "object" || Array.isArray(repeat)) {
     return hold("HOLD_FORM_REPEAT_INVALID", "repeat must be an object");
@@ -253,11 +309,31 @@ function normalizePrimitiveRepeat(repeat) {
   if (!target.ok) return target;
 
   const basePos = target.data.pos || [0, 0, 0];
+  for (let axis = 0; axis < 3; axis++) {
+    const closure = finiteLinearProgression(
+      basePos[axis],
+      step.value[axis],
+      count.value,
+      `repeat position axis ${axis}`,
+      "HOLD_FORM_REPEAT_INVALID"
+    );
+    if (!closure.ok) return closure;
+  }
+
   const repeatedTarget = { ...target.data };
   repeatedTarget.pos = basePos.map((base, axis) => {
     const delta = step.value[axis];
     return delta === 0 ? base : ["+", base, ["*", ["var", "i"], delta]];
   });
+
+  if (repeat.with_step !== undefined) {
+    if (targetModes[0] !== "instance") {
+      return hold("HOLD_FORM_REPEAT_INVALID", "repeat.with_step is only valid for a definition instance target");
+    }
+    const steppedSettings = normalizeRepeatSettingStep(repeat.with_step, target.data, count.value);
+    if (!steppedSettings.ok) return steppedSettings;
+    repeatedTarget.with = steppedSettings.data;
+  }
 
   return {
     ok: true,
@@ -317,6 +393,17 @@ function normalizeGrid(grid) {
   if (!target.ok) return target;
 
   const basePos = target.data.pos || [0, 0, 0];
+  for (let axis = 0; axis < 3; axis++) {
+    const closure = finiteLinearProgression(
+      basePos[axis],
+      step.value[axis],
+      counts[axis],
+      `grid position axis ${axis}`,
+      "HOLD_FORM_GRID_INVALID"
+    );
+    if (!closure.ok) return closure;
+  }
+
   const axisVars = ["gx", "gy", "gz"];
   const gridTarget = { ...target.data };
   gridTarget.pos = basePos.map((base, axis) => {

@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.9.0 — 2026-09-20
+
+- Added bounded `repeat.with_step` for definition-instance repeats so existing finite numeric `instance.with` settings may progress as `base + i * delta` over the fixed repeat index.
+- Requires 1..32 finite deltas, a matching numeric base setting for every stepped key, at least one non-zero delta, and a definition-instance target; malformed/no-op/primitive-target requests HOLD.
+- Reuses MorphTile's existing recipe expression and definition-setting runtime semantics without exposing arbitrary caller-authored expression trees.
+- Preserves fixed settings that are not stepped and keeps definition discovery/closure outside Form Machine.
+- Added pinned-runtime conformance proving three repeated parametric planes compile deterministically with width spans 1, 2 and 3.
+- Kept multidimensional grid-setting progression, arbitrary expressions, autonomous definition discovery, visual acceptance and CANON HELD.
+
 ## 0.8.0 — 2026-09-20
 
 - Extended `intent.compose` so direct primitive/definition targets can be combined with the already-bounded repeat and grid patterns in one ordered recipe.

@@ -14,7 +14,7 @@ const {
   validateComposeIntentKeys,
   normalizeMixedComposition
 } = require("./mixed-composition");
-const MACHINE = { id: "axm.morphtile.machine.form", version: "0.8.0" };
+const MACHINE = { id: "axm.morphtile.machine.form", version: "0.9.0" };
 
 function holdResult(request, hold, suggested_missing_capability = null) {
   return result(request, MACHINE, "HOLD", {
