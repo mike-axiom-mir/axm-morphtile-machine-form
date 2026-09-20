@@ -123,7 +123,7 @@ test("intent.compose reuses the bounded definition scale progression rule", () =
 test("repeat.scale_step fails closed on malformed, no-op, target mismatch, base mismatch, non-positive and overflow domains", () => {
   const cases = [
     { id: "malformed-vector", repeat: { count: 3, step: [1,0,0], scale_step: [0.1,0], instance: { use: "panel", scale: [1,1,1] } } },
-    { id: "nonfinite-vector", repeat: { count: 3, step: [1,0,0], scale_step: [0.1,Infinity,0], instance: { use: "panel", scale: [1,1,1] } } },
+    { id: "nonfinite-vector", code: "HOLD_FORM_INPUT_NONFINITE_VALUE", repeat: { count: 3, step: [1,0,0], scale_step: [0.1,Infinity,0], instance: { use: "panel", scale: [1,1,1] } } },
     { id: "noop-scalar", repeat: { count: 3, step: [1,0,0], scale_step: 0, instance: { use: "panel" } } },
     { id: "noop-vector", repeat: { count: 3, step: [1,0,0], scale_step: [0,0,0], instance: { use: "panel", scale: [1,1,1] } } },
     { id: "primitive", repeat: { count: 3, step: [1,0,0], scale_step: 0.1, part: { shape: "box" } } },
@@ -138,7 +138,7 @@ test("repeat.scale_step fails closed on malformed, no-op, target mismatch, base 
   for (const item of cases) {
     const out = run(request({ repeat: item.repeat }, `repeat-scale-${item.id}`));
     assert.equal(out.status, "HOLD", item.id);
-    assert.equal(out.holds[0].code, "HOLD_FORM_REPEAT_INVALID", item.id);
+    assert.equal(out.holds[0].code, item.code || "HOLD_FORM_REPEAT_INVALID", item.id);
     assert.equal(out.candidate, null, item.id);
   }
 });
