@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.11.0 — 2026-09-20
+
+- Added bounded `repeat.rot_step` for primitive and definition-instance repeats so an existing normalized target rotation may progress as `base + i * delta` over the fixed repeat index.
+- Requires a finite 3-vector delta, at least one non-zero rotation axis, and at least two repeated placements; malformed or no-op requests HOLD instead of being guessed.
+- Checks every generated rotation value across the complete bounded repeat domain before emission so finite authored values cannot silently expand to non-finite recipe matter.
+- Reuses the same rule inside `intent.compose` repeat blocks rather than adding a second composition language.
+- Added pinned-runtime proof that MorphTile executes the generated rotation expressions and produces geometry different from the equivalent non-rotating repeat while retaining the same bounded part/triangle count.
+- Grounded the rule in MorphTile's existing recipe/preset pattern: ordinary repeated matter already uses loop-index-driven rotation for spiral/stair-like geometry; Form now exposes the smallest deterministic version without opening arbitrary expression authoring.
+- Kept per-axis grid-setting progression, recursive/general recipe synthesis, caller-authored expressions, autonomous geometry invention and visual/aesthetic acceptance HELD.
+
 ## 0.10.0 — 2026-09-20
 
 - Added descriptor-safe preflight of the complete caller-authored Form request before geometry normalization or JSON-backed result transport.
@@ -67,7 +77,7 @@
 
 - Added `intent.parts` for deterministic flat primitive composition using the existing MorphTile recipe substrate.
 - Bounded the lane to 1..64 parts and normalized every part through the same primitive vocabulary/parameter rules.
-- Added fail-closed HOLDs for unknown per-part fields, unsupported shapes, malformed/oversized compositions, and ambiguous simultaneous `parts` + `recipe` requests.
+- Added fail-closed HOLDs for unknown per-part fields, unsupported shapes, malformed parameters, more than 64 parts, and ambiguous simultaneous `parts` + `recipe` requests.
 - Added pinned-runtime proof that normalized parts compile to the same exact receipt as the equivalent caller-supplied recipe.
 - Kept surface/look fields outside Form Machine's composition vocabulary.
 
