@@ -145,3 +145,58 @@ integrationTest("current pinned runtime fails closed when the caller-recipe esca
   const compiled = MorphTile.compileMesh(tile);
   assert.equal(compiled.hold, "HOLD_RECIPE_NONFINITE_VALUE");
 });
+
+integrationTest("current pinned runtime fails closed when a bounded Form primitive overflows derived mesh coordinates", () => {
+  assert.equal(runtimeCommit, manifest.tested_against.commit, "CI runtime must match machine.json pin");
+  const MorphTile = require(path.resolve(runtimePath));
+  const request = {
+    ...baseRequest,
+    request_id: "runtime-form-derived-nonfinite",
+    intent: {
+      name: "derived nonfinite Form primitive",
+      shape: "box",
+      size: [1, 1, 1],
+      pos: [Number.MAX_VALUE, 0, 0]
+    }
+  };
+
+  const out = run(request);
+  assert.equal(out.status, "CANDIDATE", "finite authored Form values remain creation-valid before runtime mesh arithmetic");
+
+  const tile = MorphTile.createTile(out.candidate);
+  const validity = MorphTile.validateTile(tile);
+  assert.equal(validity.ok, true, validity.errors.join(", "));
+
+  const compiled = MorphTile.compileMesh(tile);
+  assert.equal(compiled.hold, "HOLD_MESH_NONFINITE_VALUE");
+  assert.deepEqual(compiled.P, []);
+  assert.deepEqual(compiled.T, []);
+  assert.deepEqual(compiled.K, []);
+});
+
+integrationTest("current pinned runtime keeps a large finite bounded Form primitive representable", () => {
+  assert.equal(runtimeCommit, manifest.tested_against.commit, "CI runtime must match machine.json pin");
+  const MorphTile = require(path.resolve(runtimePath));
+  const request = {
+    ...baseRequest,
+    request_id: "runtime-form-large-finite",
+    intent: {
+      name: "large finite Form primitive",
+      shape: "box",
+      size: [1, 1, 1],
+      pos: [1e150, 0, 0]
+    }
+  };
+
+  const out = run(request);
+  assert.equal(out.status, "CANDIDATE");
+
+  const tile = MorphTile.createTile(out.candidate);
+  const validity = MorphTile.validateTile(tile);
+  assert.equal(validity.ok, true, validity.errors.join(", "));
+
+  const compiled = MorphTile.compileMesh(tile);
+  assert.equal(compiled.hold, null);
+  assert.ok(compiled.P.length > 0);
+  assert.ok(compiled.P.every((value) => Number.isFinite(value)));
+});
