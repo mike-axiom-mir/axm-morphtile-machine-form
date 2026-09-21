@@ -4,6 +4,7 @@ const { normalizeRepeatWithScale } = require("./repeat-scale");
 const { generatedRotationFromRepeat } = require("./repeat-rotation-state");
 const { generatedScaleFromRepeat } = require("./repeat-scale-state");
 const { generatedSettingValues } = require("./repeat-setting-state");
+const { generatedSizeFromRepeat } = require("./repeat-size-state");
 const {
   linearVector,
   repeatValidationStep,
@@ -39,9 +40,7 @@ function generatedRepeatState(repeat, index) {
   state.push(...generatedRotationFromRepeat(repeat, index));
 
   if (repeat.part !== undefined) {
-    const baseSize = Array.isArray(target.size) ? target.size : [1, 1, 1];
-    const sizeStep = Array.isArray(repeat.size_step) ? repeat.size_step : [0, 0, 0];
-    state.push(...linearVector(baseSize, index, sizeStep));
+    state.push(...generatedSizeFromRepeat(repeat, index));
     return state;
   }
 
