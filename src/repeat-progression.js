@@ -39,6 +39,16 @@ function proveFiniteRepeat(count, stateAt, validateState) {
   return { ok: true };
 }
 
+function proveFiniteLinear(count, base, delta, validateValue) {
+  return proveFiniteRepeat(
+    count,
+    (index) => [linearValue(base, index, delta)],
+    validateValue
+      ? (state, index) => validateValue(state[0], index)
+      : undefined
+  );
+}
+
 function proveFiniteDistinctRepeat(count, stateAt, validateState) {
   const seen = new Set();
   for (let index = 0; index < count; index += 1) {
@@ -67,5 +77,6 @@ module.exports = {
   linearExpression,
   repeatValidationStep,
   proveFiniteRepeat,
+  proveFiniteLinear,
   proveFiniteDistinctRepeat
 };

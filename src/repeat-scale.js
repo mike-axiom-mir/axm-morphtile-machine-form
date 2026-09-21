@@ -1,7 +1,7 @@
 "use strict";
 
 const { normalizeRepeatWithSize } = require("./repeat-size");
-const { linearValue, linearExpression, proveFiniteRepeat } = require("./repeat-progression");
+const { linearExpression, proveFiniteLinear } = require("./repeat-progression");
 
 function hold(code, detail) {
   return { ok: false, hold: { code, detail } };
@@ -28,10 +28,11 @@ function normalizeScaleStep(value) {
 }
 
 function positiveFiniteScaleProgression(base, delta, count, name = "repeat scale") {
-  const proof = proveFiniteRepeat(
+  const proof = proveFiniteLinear(
     count,
-    (index) => [linearValue(base, index, delta)],
-    (state) => state[0] <= 0 ? { value: state[0] } : null
+    base,
+    delta,
+    (value) => value <= 0 ? { value } : null
   );
   if (!proof.ok) {
     if (proof.reason === "nonfinite") {

@@ -1,7 +1,7 @@
 "use strict";
 
 const { normalizePrimitiveRepeat } = require("./form-vocabulary");
-const { linearValue, linearExpression, proveFiniteRepeat } = require("./repeat-progression");
+const { linearExpression, proveFiniteLinear } = require("./repeat-progression");
 
 function hold(code, detail) {
   return { ok: false, hold: { code, detail } };
@@ -18,7 +18,7 @@ function normalizeRotationStep(value) {
 }
 
 function finiteRotationProgression(base, delta, count, axis) {
-  const proof = proveFiniteRepeat(count, (index) => [linearValue(base, index, delta)]);
+  const proof = proveFiniteLinear(count, base, delta);
   if (!proof.ok) {
     return hold(
       "HOLD_FORM_REPEAT_INVALID",
