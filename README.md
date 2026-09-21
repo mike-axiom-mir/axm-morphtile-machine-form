@@ -1,6 +1,6 @@
 # MorphTile Form Machine
 
-Turns bounded form intent into candidate MorphTile mesh matter. v0.14.0 recognizes MorphTile's explicit primitive vocabulary — box, sphere, cylinder, cone, wedge, and plane — supports fail-closed flat composition, direct + parametric pattern composition, compact bounded repetition, bounded axis-aligned grids, bounded reuse of existing MorphTile definitions, and small deterministic repeat progressions for settings, rotation, primitive size, and definition-instance scalar/vector scale. The caller-supplied recipe path remains available as an expert escape hatch.
+Turns bounded form intent into candidate MorphTile mesh matter. v0.15.0 recognizes MorphTile's explicit primitive vocabulary — box, sphere, cylinder, cone, wedge, and plane — supports fail-closed flat composition, direct + parametric pattern composition, compact bounded repetition, bounded axis-aligned grids, bounded reuse of existing MorphTile definitions, small deterministic repeat progressions for settings, rotation, primitive size, and definition-instance scalar/vector scale, and bounded in-place repetition when one of those progression rules actually changes authored target state. The caller-supplied recipe path remains available as an expert escape hatch.
 
 ## Boundary answers
 
@@ -58,17 +58,19 @@ Required fields:
 - `step`: finite 3-vector translation applied per instance;
 - exactly one of `part` or `instance`.
 
-Primitive targets use the normal Form Machine primitive vocabulary. Definition targets use the bounded definition-instance vocabulary below. The repeat compiler emits MorphTile recipe expressions using the deterministic recipe loop index rather than materializing copied geometry. A zero translation step is rejected because it would duplicate identical geometry at the same location. Unknown repeat or target fields fail closed.
+Primitive targets use the normal Form Machine primitive vocabulary. Definition targets use the bounded definition-instance vocabulary below. The repeat compiler emits MorphTile recipe expressions using the deterministic recipe loop index rather than materializing copied geometry. Unknown repeat or target fields fail closed.
+
+A repeat with no progression must move on at least one translation axis, preserving the original anti-duplicate rule. From v0.15.0, `step: [0,0,0]` is accepted only when a separately validated bounded progression (`with_step`, `rot_step`, `size_step`, or `scale_step`) changes authored target state and the progression can actually take effect. The exact authored base position is restored before candidate matter is emitted; Form does not claim that a changed rotation or setting is visually distinct for every symmetric primitive or every external definition.
 
 For either primitive or definition-instance targets, repeat may optionally include `rot_step`, a finite 3-vector angular delta. At least one axis must be non-zero and `count` must be at least 2. Form compiles the normalized target rotation as `base + i * delta` on each active axis using the fixed repeat index `i`, after proving every generated value remains finite across the complete bounded repeat domain.
 
 For primitive targets only, repeat may optionally include `size_step`, a finite 3-vector dimension delta. At least one axis must change and `count` must be at least 2. Every generated size component is checked over the complete repeat domain and must remain finite and strictly positive before Form emits the recipe. Definition instances use whole-form scale rather than primitive size.
 
-For definition-instance targets only, repeat may include `with_step`, an object of 1..32 finite numeric deltas. Every stepped setting must already exist as a finite numeric base in `instance.with`, and at least one delta must be non-zero. The machine compiles each stepped setting as `base + i * delta` using the fixed repeat index.
+For definition-instance targets only, repeat may include `with_step`, an object of 1..32 finite numeric deltas. Every stepped setting must already exist as a finite numeric base in `instance.with`, at least one delta must be non-zero, and `count` must be at least 2 so the authored setting delta can affect a placement. The machine compiles each stepped setting as `base + i * delta` using the fixed repeat index.
 
 Definition-instance repeats may also include `scale_step` in one of two bounded forms. A scalar step is one finite non-zero number and requires scalar `instance.scale` or omitted unit scale. A vector step is exactly three finite numbers with at least one non-zero axis and requires vector `instance.scale`, or omitted scale which maps to MorphTile's exact implicit unit vector `[1,1,1]`. Form proves every generated scale/component remains finite and strictly positive across the complete repeat domain before emission. Scalar/vector base-step coercion is deliberately not guessed: mismatched forms HOLD.
 
-`rot_step`, `with_step`, and scalar/vector `scale_step` may coexist on a definition-instance repeat because they affect separate normalized fields while sharing the same already-bounded repeat index. Primitive `size_step` may coexist with `rot_step` for the same reason. The same bounded repeat may be used as one `intent.compose` block. It does not become recursively nestable.
+`rot_step`, `with_step`, and scalar/vector `scale_step` may coexist on a definition-instance repeat because they affect separate normalized fields while sharing the same already-bounded repeat index. Primitive `size_step` may coexist with `rot_step` for the same reason. The same bounded repeat, including the v0.15 in-place progression rule, may be used as one `intent.compose` block. It does not become recursively nestable.
 
 ## Bounded grid composition
 
@@ -111,7 +113,7 @@ Node 18 or later; zero runtime dependencies; no secrets or network required.
 
 ## Truth boundary
 
-- IMPLEMENTED: deterministic primitive normalization, bounded flat primitive composition, bounded direct + pattern composition, bounded repeat composition, bounded axis-aligned grid composition, bounded definition-instance composition, bounded repeat setting/rotation/primitive-size/definition-scalar-or-vector-scale progression, the existing caller-recipe adapter, and the local envelope used by fixtures.
+- IMPLEMENTED: deterministic primitive normalization, bounded flat primitive composition, bounded direct + pattern composition, bounded repeat composition, bounded axis-aligned grid composition, bounded definition-instance composition, bounded repeat setting/rotation/primitive-size/definition-scalar-or-vector-scale progression, bounded in-place repeat progression when another validated progression changes authored target state, the existing caller-recipe adapter, and the local envelope used by fixtures.
 - TESTED: the claims named by the local test files once CI for the exact branch head is green.
 - RUNTIME TARGET: MorphTile commit `2bdf8eade1376055473b9cc1b11734b72a5566e5`.
 - RUNTIME BOUNDARY: caller-owned recipes remain an expert escape hatch; current pinned MorphTile runtime validation owns generic recipe-expression meaning, including `HOLD_RECIPE_NONFINITE_VALUE` when a present numeric expression evaluates non-finite. Finite authored Form primitive values can also become non-finite during derived mesh arithmetic; current pinned MorphTile owns that shared compiled-representation boundary and returns `HOLD_MESH_NONFINITE_VALUE` while clearing partial `P/T/K`.
