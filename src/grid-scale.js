@@ -1,9 +1,16 @@
 "use strict";
 
 const { normalizeGridWithSize } = require("./grid-size");
-
-const AXES = ["x", "y", "z"];
-const VARS = ["gx", "gy", "gz"];
+const {
+  AXES,
+  VARS,
+  leafOf,
+  affineVector,
+  affineScalar,
+  affineExpression,
+  affineScalarExpression,
+  proveFiniteDistinctCartesian
+} = require("./grid-progression");
 
 function hold(code, detail) {
   return { ok: false, hold: { code, detail } };
@@ -56,32 +63,8 @@ function normalizeScaleSteps(value) {
   return { ok: true, kind, deltas };
 }
 
-function leafOf(node) {
-  let current = node;
-  while (current && Number.isInteger(current.repeat) && Array.isArray(current.body)) current = current.body[0];
-  return current;
-}
-
 function rotationDeltas(grid) {
   return AXES.map((axis) => grid.rot_step && Array.isArray(grid.rot_step[axis]) ? grid.rot_step[axis] : null);
-}
-
-function scalarExpression(base, deltas) {
-  let out = base;
-  for (let axis = 0; axis < 3; axis += 1) {
-    if (deltas[axis] === null) continue;
-    out = ["+", out, ["*", ["var", VARS[axis]], deltas[axis]]];
-  }
-  return out;
-}
-
-function vectorExpression(base, component, deltas) {
-  let out = base;
-  for (let axis = 0; axis < 3; axis += 1) {
-    if (!deltas[axis] || deltas[axis][component] === 0) continue;
-    out = ["+", out, ["*", ["var", VARS[axis]], deltas[axis][component]]];
-  }
-  return out;
 }
 
 function proveDomain(grid, scale) {
@@ -105,33 +88,28 @@ function proveDomain(grid, scale) {
     baseScale = target.scale === undefined ? [1, 1, 1] : target.scale.slice();
   }
 
-  const seen = new Set();
-  for (let gx = 0; gx < counts[0]; gx += 1) {
-    for (let gy = 0; gy < counts[1]; gy += 1) {
-      for (let gz = 0; gz < counts[2]; gz += 1) {
-        const index = [gx, gy, gz];
-        const pos = pos0.map((base, axis) => base + index[axis] * step[axis]);
-        const rot = rot0.map((base, component) => base + index.reduce((sum, item, axis) => sum + (rotDeltas[axis] ? item * rotDeltas[axis][component] : 0), 0));
-        let generatedScale;
-        if (scale.kind === "scalar") {
-          const value = baseScale + index.reduce((sum, item, axis) => sum + (scale.deltas[axis] === null ? 0 : item * scale.deltas[axis]), 0);
-          generatedScale = [value];
-        } else {
-          generatedScale = baseScale.map((base, component) => base + index.reduce((sum, item, axis) => sum + (scale.deltas[axis] ? item * scale.deltas[axis][component] : 0), 0));
-        }
-        if (pos.concat(rot, generatedScale).some((value) => !Number.isFinite(value))) {
-          return hold("HOLD_FORM_GRID_INVALID", `grid position/rotation/scale progression produces a non-finite generated state at [${gx},${gy},${gz}]`);
-        }
-        if (generatedScale.some((value) => value <= 0)) {
-          return hold("HOLD_FORM_GRID_INVALID", `grid scale progression must stay greater than zero across the complete Cartesian domain; generated state [${gx},${gy},${gz}] is invalid`);
-        }
-        const key = JSON.stringify(pos.concat(rot, generatedScale));
-        if (seen.has(key)) {
-          return hold("HOLD_FORM_GRID_INVALID", `grid position/rotation/scale progression produces a duplicate authored state at [${gx},${gy},${gz}]`);
-        }
-        seen.add(key);
-      }
+  const scaleWidth = scale.kind === "scalar" ? 1 : 3;
+  const proof = proveFiniteDistinctCartesian(
+    counts,
+    (index) => {
+      const pos = pos0.map((base, axis) => base + index[axis] * step[axis]);
+      const rot = affineVector(rot0, index, rotDeltas);
+      const generatedScale = scale.kind === "scalar"
+        ? [affineScalar(baseScale, index, scale.deltas)]
+        : affineVector(baseScale, index, scale.deltas);
+      return pos.concat(rot, generatedScale);
+    },
+    (state) => state.slice(-scaleWidth).some((value) => value <= 0) ? "scale_nonpositive" : null
+  );
+  if (!proof.ok) {
+    const where = `[${proof.index.join(",")}]`;
+    if (proof.reason === "nonfinite") {
+      return hold("HOLD_FORM_GRID_INVALID", `grid position/rotation/scale progression produces a non-finite generated state at ${where}`);
     }
+    if (proof.reason === "domain") {
+      return hold("HOLD_FORM_GRID_INVALID", `grid scale progression must stay greater than zero across the complete Cartesian domain; generated state ${where} is invalid`);
+    }
+    return hold("HOLD_FORM_GRID_INVALID", `grid position/rotation/scale progression produces a duplicate authored state at ${where}`);
   }
   return { ok: true, baseScale };
 }
@@ -172,9 +150,9 @@ function normalizeGridWithScale(grid) {
   const pos0 = Array.isArray(grid.instance.pos) ? grid.instance.pos.slice() : [0, 0, 0];
   leaf.pos = pos0.map((base, axis) => grid.counts[axis] === 1 || grid.step[axis] === 0 ? base : ["+", base, ["*", ["var", VARS[axis]], grid.step[axis]]]);
   if (scale.kind === "scalar") {
-    leaf.scale = scalarExpression(closure.baseScale, scale.deltas);
+    leaf.scale = affineScalarExpression(closure.baseScale, scale.deltas);
   } else {
-    leaf.scale = closure.baseScale.map((base, component) => vectorExpression(base, component, scale.deltas));
+    leaf.scale = closure.baseScale.map((base, component) => affineExpression(base, component, scale.deltas));
   }
   return normalized;
 }
