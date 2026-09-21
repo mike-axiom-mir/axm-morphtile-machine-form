@@ -2,6 +2,7 @@
 
 const { normalizeRepeatWithSize } = require("./repeat-size");
 const { linearExpression, linearVectorExpression, proveFiniteLinear } = require("./repeat-progression");
+const { scaleStateFromRepeat } = require("./repeat-scale-state");
 
 function hold(code, detail) {
   return { ok: false, hold: { code, detail } };
@@ -70,31 +71,30 @@ function normalizeRepeatWithScale(repeat) {
   }
 
   const repeatedTarget = normalized.data.body[0];
+  const scaleState = scaleStateFromRepeat(repeat);
   if (scaleStep.kind === "scalar") {
     if (Array.isArray(repeatedTarget.scale)) {
       return hold("HOLD_FORM_REPEAT_INVALID", "scalar repeat.scale_step requires scalar instance.scale or omitted unit scale");
     }
-    const baseScale = repeatedTarget.scale === undefined ? 1 : repeatedTarget.scale;
-    const closure = positiveFiniteScaleProgression(baseScale, scaleStep.value, normalized.data.repeat);
+    const closure = positiveFiniteScaleProgression(scaleState.base, scaleState.delta, normalized.data.repeat);
     if (!closure.ok) return closure;
-    repeatedTarget.scale = linearExpression(baseScale, scaleStep.value);
+    repeatedTarget.scale = linearExpression(scaleState.base, scaleState.delta);
     return normalized;
   }
 
   if (repeatedTarget.scale !== undefined && !Array.isArray(repeatedTarget.scale)) {
     return hold("HOLD_FORM_REPEAT_INVALID", "vector repeat.scale_step requires vector instance.scale or omitted unit scale");
   }
-  const baseScale = repeatedTarget.scale === undefined ? [1, 1, 1] : repeatedTarget.scale.slice();
   for (let axis = 0; axis < 3; axis += 1) {
     const closure = positiveFiniteScaleProgression(
-      baseScale[axis],
-      scaleStep.value[axis],
+      scaleState.base[axis],
+      scaleState.delta[axis],
       normalized.data.repeat,
       `repeat scale axis ${axis}`
     );
     if (!closure.ok) return closure;
   }
-  repeatedTarget.scale = linearVectorExpression(baseScale, scaleStep.value);
+  repeatedTarget.scale = linearVectorExpression(scaleState.base, scaleState.delta);
   return normalized;
 }
 
