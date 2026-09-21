@@ -6,6 +6,10 @@ function linearValue(base, index, delta) {
   return base + index * delta;
 }
 
+function linearVector(base, index, deltas) {
+  return base.map((value, component) => linearValue(value, index, deltas[component]));
+}
+
 function linearExpression(base, delta) {
   return delta === 0 ? base : ["+", base, ["*", ["var", INDEX_VAR], delta]];
 }
@@ -74,6 +78,7 @@ function proveFiniteDistinctRepeat(count, stateAt, validateState) {
 module.exports = {
   INDEX_VAR,
   linearValue,
+  linearVector,
   linearExpression,
   repeatValidationStep,
   proveFiniteRepeat,
