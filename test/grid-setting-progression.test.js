@@ -65,6 +65,34 @@ test("definition grid may progress named settings independently across stationar
   });
 });
 
+test("grid setting progression preserves exact authored own-key identity", () => {
+  const baseSettings = JSON.parse('{"__proto__":2,"constructor":3,"toString":4}');
+  const xStep = JSON.parse('{"__proto__":0.5,"constructor":1,"toString":-0.25}');
+  const input = request("grid-setting-own-keys", {
+    grid: {
+      counts: [2, 1, 1],
+      step: [0, 0, 0],
+      with_step: { x: xStep },
+      instance: { use: "panel", with: baseSettings }
+    }
+  });
+  const before = JSON.stringify(input);
+  const out = run(input);
+  assert.equal(out.status, "CANDIDATE");
+  assert.equal(JSON.stringify(input), before, "grid progression must not mutate caller-owned own-key settings");
+
+  const emitted = leafOf(out).with;
+  const expected = [
+    ["__proto__", ["+", 2, ["*", ["var", "gx"], 0.5]]],
+    ["constructor", ["+", 3, ["*", ["var", "gx"], 1]]],
+    ["toString", ["+", 4, ["*", ["var", "gx"], -0.25]]]
+  ];
+  for (const [key, value] of expected) {
+    assert.equal(Object.prototype.hasOwnProperty.call(emitted, key), true, `${key} must remain an own setting`);
+    assert.deepEqual(emitted[key], value, `${key} must retain its authored progression expression`);
+  }
+});
+
 test("grid setting progression composes with rotation and definition scale progression", () => {
   const out = run(request("grid-setting-compose-state", {
     grid: {
