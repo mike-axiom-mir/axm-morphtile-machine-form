@@ -3,13 +3,12 @@
 const { normalizeGridWithScale } = require("./grid-scale");
 const { generatedScaleFromGrid } = require("./grid-scale-state");
 const { rotationDeltasFromGrid } = require("./grid-rotation");
+const { generatedSettingValues, settingExpressionState } = require("./grid-setting-state");
 const {
   AXES,
   leafOf,
   affineVector,
-  affineScalar,
   affineExpression,
-  affineScalarExpression,
   axisAlignedVectorDeltas,
   progressionValidationStep,
   proveFiniteDistinctCartesian
@@ -66,29 +65,18 @@ function normalizeSettingSteps(value) {
   return { ok: true, deltas };
 }
 
-function settingDeltasForKey(deltas, key) {
-  return deltas.map((axisDeltas) => axisDeltas && Object.prototype.hasOwnProperty.call(axisDeltas, key)
-    ? axisDeltas[key]
-    : null);
-}
-
-function settingExpression(base, key, deltas) {
-  return affineScalarExpression(base, settingDeltasForKey(deltas, key));
-}
-
 function proveDomain(grid, deltas, baseSettings) {
   const counts = grid.counts;
   const pos0 = Array.isArray(grid.instance.pos) ? grid.instance.pos : [0, 0, 0];
   const posDeltas = axisAlignedVectorDeltas(grid.step, counts);
   const rot0 = Array.isArray(grid.instance.rot) ? grid.instance.rot : [0, 0, 0];
   const rotDeltas = rotationDeltasFromGrid(grid);
-  const settingKeys = Object.keys(baseSettings).sort();
 
   const proof = proveFiniteDistinctCartesian(counts, (index) => {
     const pos = affineVector(pos0, index, posDeltas);
     const rot = affineVector(rot0, index, rotDeltas);
     const scale = generatedScaleFromGrid(grid, index);
-    const settings = settingKeys.map((key) => affineScalar(baseSettings[key], index, settingDeltasForKey(deltas, key)));
+    const settings = generatedSettingValues(baseSettings, deltas, index);
     return pos.concat(rot, scale, settings);
   });
 
@@ -144,11 +132,7 @@ function normalizeGridWithSettings(grid) {
   const pos0 = Array.isArray(grid.instance.pos) ? grid.instance.pos.slice() : [0, 0, 0];
   const posDeltas = axisAlignedVectorDeltas(grid.step, grid.counts);
   leaf.pos = pos0.map((base, component) => affineExpression(base, component, posDeltas));
-  const stepped = { ...baseSettings };
-  for (const key of Object.keys(baseSettings).sort()) {
-    stepped[key] = settingExpression(baseSettings[key], key, settings.deltas);
-  }
-  leaf.with = stepped;
+  leaf.with = settingExpressionState(baseSettings, settings.deltas);
   return normalized;
 }
 
