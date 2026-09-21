@@ -1,6 +1,7 @@
 "use strict";
 
 const { linearValue, linearExpression, proveFiniteRepeat } = require("./repeat-progression");
+const { VARS, affineExpression, axisAlignedVectorDeltas } = require("./grid-progression");
 
 const PRIMITIVES = Object.freeze(["box", "sphere", "cylinder", "cone", "wedge", "plane"]);
 const RADIAL = new Set(["sphere", "cylinder", "cone"]);
@@ -402,17 +403,14 @@ function normalizeGrid(grid) {
     if (!closure.ok) return closure;
   }
 
-  const axisVars = ["gx", "gy", "gz"];
+  const positionDeltas = axisAlignedVectorDeltas(step.value, counts);
   const gridTarget = { ...target.data };
-  gridTarget.pos = basePos.map((base, axis) => {
-    if (counts[axis] === 1) return base;
-    return ["+", base, ["*", ["var", axisVars[axis]], step.value[axis]]];
-  });
+  gridTarget.pos = basePos.map((base, component) => affineExpression(base, component, positionDeltas));
 
   let body = [gridTarget];
   for (let axis = 2; axis >= 0; axis--) {
     if (counts[axis] === 1) continue;
-    body = [{ repeat: counts[axis], as: axisVars[axis], body }];
+    body = [{ repeat: counts[axis], as: VARS[axis], body }];
   }
 
   return {
