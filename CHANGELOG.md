@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.18.0 — 2026-09-21
+
+- Added bounded per-axis definition-instance `grid.scale_step` using fixed `x`, `y`, and `z` progression keys over existing `gx`, `gy`, and `gz` loop variables.
+- Supports either scalar scale deltas on every provided grid axis or vector scale deltas on every provided grid axis; mixed scalar/vector axes and base-step coercion HOLD rather than inventing broadcast semantics.
+- A definition grid axis may remain at one translation coordinate when that same axis has validated scale progression; active axes with neither translation nor their own rotation/scale progression still HOLD.
+- Requires at least two cells on every scale-progression axis and proves every generated scalar/vector scale remains finite and strictly positive across the complete Cartesian domain.
+- Proves combined position+rotation+scale authored states stay distinct, including non-adjacent cross-axis cancellation.
+- Allows bounded definition grid scale and rotation progression to coexist through the same compact nested-loop substrate and reuses the exact rule inside `intent.compose`.
+- Primitive grids reject `scale_step` and continue to use primitive `size_step`; grid definition-setting progression remains a separate HELD semantic.
+- Added pinned-runtime proof that current MorphTile resolves a real definition, consumes multi-axis per-cell scale expressions with simultaneous rotation, compiles finite changing geometry, and differs from a fixed-scale control.
+- Preserved regression-first evidence: head `53ef8211f1876f807627978a2be73d090113b7cb` produced the expected failing PR run `35555607978` before the capability existed; implementation head `f685894d1b9c325159aa088bb2d47bcc4fae832f` then passed run `35555720791`.
+
 ## 0.17.0 — 2026-09-21
 
 - Added bounded per-axis primitive `grid.size_step` using fixed `x`, `y`, and `z` progression keys over existing `gx`, `gy`, and `gz` loop variables.
