@@ -1,7 +1,13 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
+const path = require("node:path");
 const baseRequest = require("../fixtures/request.box.json");
+const manifest = require("../machine.json");
 const { run } = require("../src");
+
+const runtimePath = process.env.MORPHTILE_CORE_PATH;
+const runtimeCommit = process.env.MORPHTILE_COMMIT;
+const integrationTest = runtimePath ? test : test.skip;
 
 function request(request_id, intent) {
   return { ...baseRequest, request_id, intent };
@@ -120,4 +126,34 @@ test("an active grid axis still needs movement or its own bounded rotation progr
   }));
   assert.equal(out.status, "HOLD");
   assert.equal(out.holds[0].code, "HOLD_FORM_GRID_INVALID");
+});
+
+integrationTest("pinned MorphTile consumes emitted grid rotation expressions as finite geometry", () => {
+  assert.equal(runtimeCommit, manifest.tested_against.commit, "CI runtime must match machine.json pin");
+  const MorphTile = require(path.resolve(runtimePath));
+  const out = run(request("runtime-grid-rotation", {
+    name: "runtime turning row",
+    grid: {
+      counts: [3, 1, 1],
+      step: [0, 0, 0],
+      rot_step: { x: [0, 0.4, 0] },
+      part: { shape: "wedge", size: [1, 2, 1] }
+    }
+  }));
+  assert.equal(out.status, "CANDIDATE");
+
+  const tile = MorphTile.createTile(out.candidate);
+  const validity = MorphTile.validateTile(tile);
+  assert.equal(validity.ok, true, validity.errors.join(", "));
+  const compiled = MorphTile.compileMesh(tile);
+  assert.equal(compiled.hold, null);
+  assert.equal(compiled.recipe_parts, 3);
+  assert.ok(compiled.P.length > 0);
+  assert.ok(compiled.P.every((value) => Number.isFinite(value)));
+
+  const fixedCandidate = JSON.parse(JSON.stringify(out.candidate));
+  fixedCandidate.facets.mesh.data.parts[0].body[0].rot = [0, 0, 0];
+  const fixedCompiled = MorphTile.compileMesh(MorphTile.createTile(fixedCandidate));
+  assert.equal(fixedCompiled.hold, null);
+  assert.notDeepEqual(compiled.P, fixedCompiled.P, "receiver must consume the emitted per-cell rotation expression");
 });
