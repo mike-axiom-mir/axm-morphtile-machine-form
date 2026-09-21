@@ -1,6 +1,7 @@
 "use strict";
 
 const { linearValue, linearExpression, proveFiniteRepeat } = require("./repeat-progression");
+const { settingExpressionState } = require("./repeat-setting-state");
 const { VARS, affineExpression, axisAlignedVectorDeltas } = require("./grid-progression");
 
 const PRIMITIVES = Object.freeze(["box", "sphere", "cylinder", "cone", "wedge", "plane"]);
@@ -252,7 +253,6 @@ function normalizeRepeatSettingStep(withStep, target, count) {
   }
 
   const baseSettings = target.with || {};
-  const stepped = { ...baseSettings };
   let changesSetting = false;
 
   for (const key of keys) {
@@ -269,14 +269,13 @@ function normalizeRepeatSettingStep(withStep, target, count) {
     const closure = finiteRepeatProgression(baseSettings[key], delta, count, `repeat.with_step.${key}`);
     if (!closure.ok) return closure;
     changesSetting ||= delta !== 0;
-    stepped[key] = linearExpression(baseSettings[key], delta);
   }
 
   if (!changesSetting) {
     return hold("HOLD_FORM_REPEAT_INVALID", "repeat.with_step must change at least one setting");
   }
 
-  return { ok: true, data: stepped };
+  return { ok: true, data: settingExpressionState(baseSettings, withStep) };
 }
 
 function normalizePrimitiveRepeat(repeat) {

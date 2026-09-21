@@ -2,8 +2,8 @@
 
 const { normalizeRepeatWithScale } = require("./repeat-scale");
 const { generatedScaleFromRepeat } = require("./repeat-scale-state");
+const { generatedSettingValues } = require("./repeat-setting-state");
 const {
-  linearValue,
   linearVector,
   repeatValidationStep,
   proveFiniteDistinctRepeat
@@ -50,10 +50,7 @@ function generatedRepeatState(repeat, index) {
 
   const baseSettings = target.with || {};
   const settingStep = repeat.with_step || {};
-  for (const key of Object.keys(baseSettings).sort()) {
-    const delta = Object.prototype.hasOwnProperty.call(settingStep, key) ? settingStep[key] : 0;
-    state.push(linearValue(baseSettings[key], index, delta));
-  }
+  state.push(...generatedSettingValues(baseSettings, settingStep, index));
 
   return state;
 }

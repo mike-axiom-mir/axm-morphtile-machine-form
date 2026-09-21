@@ -2,7 +2,7 @@
 
 - Foundation version: 0.19.0
 - State: INTEGRATED FOUNDATION + DRAFT INTERNAL-CONVERGENCE CANDIDATE
-- Integrated Form baseline: `09d3b1a96a5f62adc9c41870e513ce56d2370966`
+- Integrated Form baseline: `565798b682b60907ecea91a646df1bbb35157a28`
 - Local test command: `npm test`
 - Pinned runtime target: MorphTile v0.4 at `2bdf8eade1376055473b9cc1b11734b72a5566e5`
 - Envelope: provisional v0.1
@@ -10,7 +10,7 @@
 
 ## Integrated foundation
 
-The current main baseline includes the bounded 0.19.0 Form vocabulary plus independently verified and integrated convergence/correctness work through Form PR #42. Public intent remains bounded to explicit primitives, flat parts, direct/repeat/grid mixed composition, reusable definition instances, and the already-established repeat/grid progression rules.
+The current main baseline includes the bounded 0.19.0 Form vocabulary plus independently verified and integrated convergence/correctness work through Form PR #43. Public intent remains bounded to explicit primitives, flat parts, direct/repeat/grid mixed composition, reusable definition instances, and the already-established repeat/grid progression rules.
 
 Integrated behavior includes:
 
@@ -24,6 +24,7 @@ Integrated behavior includes:
 - shared deterministic repeat/grid progression arithmetic kernels;
 - central base-repeat arithmetic and repeat linear finite-domain proof converged on the repeat kernel;
 - repeat numeric-vector and emitted-vector expression arithmetic converged on the repeat kernel;
+- repeat scale owner and complete-state proof reuse one scalar/vector/static/default generated-scale representation;
 - all established grid progression lanes share the canonical axis-aligned generated-position representation;
 - downstream grid size/scale/setting proofs reuse one owner-provided grid-rotation representation;
 - grid scale owner and downstream setting proofs reuse one owner-provided scalar/vector/static generated grid-scale representation;
@@ -33,19 +34,19 @@ Integrated behavior includes:
 
 The integrated foundation does not claim visual uniqueness merely because authored state differs.
 
-## Current draft candidate — repeat scale generated-state convergence
+## Current draft candidate — repeat setting generated-state convergence
 
-This candidate adds no public syntax or geometry capability. Repeat definition-scale behavior still interpreted authored/default scale state in two places: the scale owner reconstructed scalar/vector base and delta state for finite/positivity proof and emission, while the complete authored-state distinctness proof independently reconstructed scalar/vector/static/default generated scale state.
+This candidate adds no public syntax or geometry capability. Repeat definition-setting progression still interpreted the same authored setting map and `with_step` deltas in two places: the setting owner built emitted loop expressions, while the complete authored-state distinctness proof independently rebuilt generated numeric setting values and key ordering.
 
-The Form-owned `repeat-scale-state.js` module now provides one deterministic internal representation of repeat scale state. `scaleStateFromRepeat(repeat)` preserves scalar, vector, static and omitted-unit defaults without taking validation authority; `generatedScaleFromRepeat(repeat, index)` produces the numeric scale state used by complete-state proof. The scale owner consumes the same base/delta representation for its existing finite/positivity proof and expression emission, while `repeat-distinctness.js` consumes the generated-state representation instead of reinterpreting scale semantics.
+The Form-owned `repeat-setting-state.js` module now provides one deterministic internal interpretation for that state. `generatedSettingValues(baseSettings, withStep, index)` returns generated values in canonical sorted setting-key order. `settingExpressionState(baseSettings, withStep)` produces the emitted bounded loop-expression state while preserving caller data and exact own-key identity, including `__proto__` as data rather than prototype authority.
 
-Compatibility checks, positivity/finite rules, recipe emission, setting ordering, complete-state distinctness authority, public intent shape and established HOLD wording remain in their existing owners. The state helper intentionally does not pre-empt malformed scalar/vector compatibility: the scale lane continues to reject those cases with its existing contract.
+The existing setting owner still validates allowed setting names, matching authored bases, finite numeric deltas, finite closure, non-zero effect, target kind and repeat count before asking the representation helper to emit state. The complete-state proof consumes the same generated-state interpretation rather than rebuilding default-zero deltas and key ordering itself. Unknown/unowned deltas remain outside representation authority and are rejected by the existing setting owner before candidate emission.
 
-This is behavior-preserving convergence, so no fabricated regression-first-red claim is made. Focused coverage pins scalar/vector/static/default state, deterministic generated values, copied output and caller-input immutability, plus the boundary that representation does not steal compatibility-validation authority. Inherited repeat scale/distinctness/composition/runtime-conformance tests remain the public behavior evidence surface. Exact candidate-head CI must be green before independent Verification.
+A specification-first focused test intentionally failed before the helper existed. The implemented candidate then passed the full Form suite against the pinned MorphTile receiver. Focused coverage pins canonical ordering, deterministic replay, caller immutability, exact own-key `__proto__` handling and the boundary that representation does not take validation authority. Existing repeat-setting, distinctness, own-key and runtime-conformance tests remain the public behavior evidence surface.
 
 ## Placement
 
-This candidate belongs in Form Machine, not MorphTile core. MorphTile already owns recipe loops, lexical loop variables, expression evaluation, definition use and geometry execution. The repeated rule is producer-side interpretation of Form-owned repeat scale intent; no missing universal representation/runtime primitive was demonstrated.
+This candidate belongs in Form Machine, not MorphTile core. MorphTile already owns recipe loops, lexical loop variables, expression evaluation, definition use and geometry execution. The repeated rule is producer-side interpretation of Form-owned repeat setting intent; no missing universal representation/runtime primitive was demonstrated.
 
 MorphTile core PR #17 remains the occupied intentionally-red repeat lexical-scope presentation HOLD and is not duplicated here.
 
@@ -57,7 +58,6 @@ MorphTile core PR #17 remains the occupied intentionally-red repeat lexical-scop
 - radial or other new layout operators without repeated grounded creation evidence;
 - automatic definition discovery or dependency closure;
 - semantic/range inference for arbitrary external definition settings;
-- scalar/vector coercion or broadcasting not already explicitly supported;
 - autonomous geometry invention;
 - visual/aesthetic acceptance or production readiness;
 - compatibility beyond the exact pinned MorphTile commit;
