@@ -1,8 +1,8 @@
 # Status
 
 - Foundation version: 0.19.0
-- State: INTEGRATED FOUNDATION + DRAFT INTERNAL-CONVERGENCE CANDIDATE
-- Integrated Form baseline: `d83b9c92a90c71f0b0be62bdf63bd903387cfa01`
+- State: INTEGRATED FOUNDATION + DRAFT GRID-CORRECTNESS CANDIDATE
+- Integrated Form baseline: `dd6975f29390e3175642a7d510b3c5320415b620`
 - Local test command: `npm test`
 - Pinned runtime target: MorphTile v0.4 at `2bdf8eade1376055473b9cc1b11734b72a5566e5`
 - Envelope: provisional v0.1
@@ -10,7 +10,7 @@
 
 ## Integrated foundation
 
-The current main branch includes the bounded 0.19.0 Form vocabulary plus the independently reviewed internal convergence and correctness work through Form PR #31. Public intent remains bounded to explicit primitives, flat parts, direct/repeat/grid mixed composition, reusable definition instances, and the already-established repeat/grid progression rules.
+The current main branch includes the bounded 0.19.0 Form vocabulary plus independently reviewed internal convergence and correctness work through Form PR #32. Public intent remains bounded to explicit primitives, flat parts, direct/repeat/grid mixed composition, reusable definition instances, and the already-established repeat/grid progression rules.
 
 Integrated behavior includes:
 
@@ -20,31 +20,32 @@ Integrated behavior includes:
 - bounded repeat setting, rotation, primitive-size, and definition scalar/vector-scale progression;
 - bounded per-axis grid rotation, primitive-size, definition-scale, and definition-setting progression;
 - in-place repeat/grid progression only when independently validated authored state changes;
-- complete bounded generated-state proof for repeat/grid progressions, including floating-point duplicate-state collapse;
+- complete bounded generated-state proof for repeat and progression-bearing grids, including floating-point duplicate-state collapse;
 - shared deterministic repeat/grid progression arithmetic kernels;
+- central base-repeat translation and definition-setting arithmetic converged on the repeat progression kernel;
 - descriptor-safe caller-input preflight and prototype-independent authored definition-setting storage;
 - pinned-current-core conformance through MorphTile public create/validate/compile contracts.
 
 The integrated foundation does not claim visual uniqueness merely because authored state differs. Symmetric geometry, unused external definition settings, or semantically equivalent values can still render alike.
 
-## Current draft candidate — base repeat kernel convergence
+## Current draft candidate — base-grid generated-position distinctness
 
-The current draft candidate does not add public syntax. It removes remaining duplicate one-dimensional repeat arithmetic in the central form vocabulary by routing base repeat translation and definition `with_step` progression through the existing `repeat-progression` kernel.
+The current draft candidate closes the remaining non-progression grid precision hole. A base grid previously treated a finite non-zero translation step as sufficient evidence that cells were distinct. At JavaScript number precision boundaries, `base + step` can equal `base` even when `step` is finite and non-zero, so ordinary grid cells could collapse onto the same authored position.
 
-The candidate preserves existing public behavior:
+The candidate adds one final bounded base-grid proof using the existing Cartesian progression kernel:
 
-- repeat translation still proves every generated coordinate remains finite before emission;
-- definition `with_step` still requires matching finite numeric bases and at least one non-zero delta;
-- emitted expressions remain the exact fixed-index `base + i * delta` representation;
-- existing HOLD codes and finite-domain detail strings remain stable;
-- complete repeat generated-state distinctness remains owned by the already-integrated `repeat-distinctness` layer;
-- grid behavior is deliberately unchanged in this candidate.
+- standalone `intent.grid` and grid blocks inside `intent.compose` share the same proof;
+- every generated base-grid position must remain finite and distinct across the complete 2..64-cell Cartesian domain;
+- a numeric duplicate state HOLDs as `HOLD_FORM_GRID_INVALID` before recipe matter is emitted;
+- deterministic replay and caller-input immutability remain required;
+- progression-bearing grids continue to use their existing complete authored-state proofs, so a collapsed translation component remains valid when another independently validated rotation/size/scale/setting progression distinguishes the complete state;
+- no new public intent syntax, expression language, geometry primitive, or runtime authority is introduced.
 
-Focused regressions pin canonical expression reuse, deterministic output, caller immutability, and legacy overflow HOLD details. Exact-head CI and independent Verification are required before Director integration. No self-merge is authorized by this repository status.
+Regression-first evidence is preserved on the candidate branch. Exact regression head `40c7dc2d48d5d3ca51d8221a981026fa1fbef43a` fails the new duplicate-state assertions on the integrated baseline; implementation evidence must be green at the final exact candidate head before review.
 
 ## Placement
 
-This candidate belongs in Form Machine, not MorphTile core. Current MorphTile already owns compact recipe loops, lexical loop variables, expression evaluation, definition use, and runtime geometry execution. The change consolidates producer-side arithmetic; it does not demonstrate a missing universal representation/runtime primitive.
+This candidate belongs in Form Machine, not MorphTile core. Current MorphTile already owns compact recipe loops, lexical loop variables, expression evaluation, definition use, and runtime geometry execution. The missing rule is producer-side evidence that requested base-grid placements remain distinct after numeric evaluation, not a universal representation/runtime primitive.
 
 The separate MorphTile-core repeat lexical-scope HOLD for expression-backed presentation labels remains an occupied core lane and is not duplicated here.
 
