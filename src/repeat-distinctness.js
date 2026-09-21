@@ -1,7 +1,11 @@
 "use strict";
 
 const { normalizeRepeatWithScale } = require("./repeat-scale");
-const { linearValue, proveFiniteDistinctRepeat } = require("./repeat-progression");
+const {
+  linearValue,
+  repeatValidationStep,
+  proveFiniteDistinctRepeat
+} = require("./repeat-progression");
 
 const PROGRESSION_KEYS = Object.freeze(["with_step", "rot_step", "size_step", "scale_step"]);
 
@@ -11,12 +15,6 @@ function hold(code, detail) {
 
 function hasBoundedProgression(repeat) {
   return PROGRESSION_KEYS.some((key) => repeat[key] !== undefined);
-}
-
-function isExactZeroStep(step) {
-  return Array.isArray(step)
-    && step.length === 3
-    && step.every((value) => typeof value === "number" && value === 0);
 }
 
 function authoredTarget(repeat) {
@@ -105,8 +103,13 @@ function normalizeRepeatWithDistinctness(repeat) {
     );
   }
 
+  const validationStep = repeatValidationStep(repeat.step, hasBoundedProgression(repeat));
+  const needsValidationMovement = validationStep !== null
+    && Array.isArray(repeat.step)
+    && validationStep.some((value, axis) => value !== repeat.step[axis]);
+
   let normalized;
-  if (!isExactZeroStep(repeat.step) || !hasBoundedProgression(repeat)) {
+  if (!needsValidationMovement) {
     normalized = normalizeRepeatWithScale(repeat);
   } else {
     // Base repeat normalization historically used non-zero translation as its
@@ -114,7 +117,7 @@ function normalizeRepeatWithDistinctness(repeat) {
     // placements, so use private validation-only movement and restore authored
     // position before returning any candidate matter. Complete generated-state
     // distinctness is proved below against the original authored repeat.
-    const validationRepeat = Object.assign(Object.create(null), repeat, { step: [1, 0, 0] });
+    const validationRepeat = Object.assign(Object.create(null), repeat, { step: validationStep });
     normalized = normalizeRepeatWithScale(validationRepeat);
     if (normalized.ok) normalized.data.body[0].pos = authoredBasePosition(repeat);
   }

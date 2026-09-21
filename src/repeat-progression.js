@@ -10,6 +10,19 @@ function linearExpression(base, delta) {
   return delta === 0 ? base : ["+", base, ["*", ["var", INDEX_VAR], delta]];
 }
 
+function repeatValidationStep(step, activeProgression) {
+  if (!Array.isArray(step) || step.length !== 3
+      || step.some((value) => typeof value !== "number" || !Number.isFinite(value))) {
+    return null;
+  }
+
+  const validationStep = step.slice();
+  if (activeProgression && validationStep.every((value) => value === 0)) {
+    validationStep[0] = 1;
+  }
+  return validationStep;
+}
+
 function proveFiniteRepeat(count, stateAt, validateState) {
   for (let index = 0; index < count; index += 1) {
     const state = stateAt(index);
@@ -52,6 +65,7 @@ module.exports = {
   INDEX_VAR,
   linearValue,
   linearExpression,
+  repeatValidationStep,
   proveFiniteRepeat,
   proveFiniteDistinctRepeat
 };
