@@ -54,8 +54,10 @@ function leafOf(node) {
 function expressionFor(base, component, deltas) {
   let expression = base;
   for (let axis = 0; axis < 3; axis += 1) {
-    const delta = deltas[axis] && deltas[axis][component];
-    if (delta === undefined || delta === 0) continue;
+    const axisDelta = deltas[axis];
+    if (!axisDelta) continue;
+    const delta = axisDelta[component];
+    if (delta === 0) continue;
     expression = ["+", expression, ["*", ["var", AXIS_VARS[axis]], delta]];
   }
   return expression;
