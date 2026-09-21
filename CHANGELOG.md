@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.19.0 — 2026-09-21
+
+- Added bounded definition-only `grid.with_step` for deterministic per-axis progression of existing finite numeric definition settings over fixed `gx`, `gy`, and `gz` loop variables.
+- Requires `x`/`y`/`z` axis maps with 1..32 finite numeric deltas, matching own finite numeric `instance.with` bases, at least one changed setting per provided axis, and at least two cells on each progression axis.
+- Allows a definition grid axis to remain translation-stationary when that same axis owns validated setting progression; primitive grids reject `with_step`.
+- Composes setting progression with existing definition `rot_step` and scalar/vector `scale_step` without exposing caller-authored expressions.
+- Proves the complete bounded Cartesian position+rotation+scale+settings authored-state domain remains finite and distinct, including non-adjacent cross-axis setting cancellation.
+- Deliberately does not invent positivity, range, semantic-effect, or visual-effect rules for arbitrary external definition settings; the referenced definition/runtime owns their meaning.
+- Reuses the exact same grid-setting rule inside `intent.compose`.
+- Added pinned-runtime proof that current MorphTile resolves a real parametric definition, consumes multi-axis width/depth setting expressions, compiles four finite recipe parts, and differs from a fixed-setting control.
+- Preserved regression-first evidence: exact head `4180d56c9f4cf981507006d81f4aa9125070df29` produced expected failing Actions run `35559047033`; functional head `f49e0523b3fa7de7cd2e018b0da2822f505e2675` then passed Actions run `35559135517` before version/documentation receipts.
+
 ## 0.18.0 — 2026-09-21
 
 - Added bounded per-axis definition-instance `grid.scale_step` using fixed `x`, `y`, and `z` progression keys over existing `gx`, `gy`, and `gz` loop variables.
