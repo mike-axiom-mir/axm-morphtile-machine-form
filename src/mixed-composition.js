@@ -5,7 +5,7 @@ const {
   normalizeDefinitionInstances
 } = require("./form-vocabulary");
 const { normalizeRepeatWithDistinctness } = require("./repeat-distinctness");
-const { normalizeGridWithSettings } = require("./grid-settings");
+const { normalizeGridWithDistinctness } = require("./grid-distinctness");
 
 const COMPOSE_ITEM_KEYS = new Set(["part", "instance", "repeat", "grid"]);
 const COMPOSE_INTENT_KEYS = new Set(["name", "compose"]);
@@ -65,7 +65,7 @@ function normalizeMixedComposition(items) {
       placements = repeated.data.repeat;
       usesDefinition = repeated.target_kind === "instance";
     } else {
-      const grid = normalizeGridWithSettings(item.grid);
+      const grid = normalizeGridWithDistinctness(item.grid);
       if (!grid.ok) return hold(grid.hold.code, `${label}.grid: ${grid.hold.detail}`);
       data = grid.data;
       placements = grid.total_instances;
