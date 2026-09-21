@@ -1,9 +1,16 @@
 "use strict";
 
 const { normalizeGridWithScale } = require("./grid-scale");
+const {
+  AXES,
+  VARS,
+  leafOf,
+  affineVector,
+  affineScalar,
+  affineScalarExpression,
+  proveFiniteDistinctCartesian
+} = require("./grid-progression");
 
-const AXES = ["x", "y", "z"];
-const VARS = ["gx", "gy", "gz"];
 const MAX_INSTANCE_SETTINGS = 32;
 const SETTING_NAME = /^[A-Za-z_][A-Za-z0-9_.-]{0,63}$/;
 
@@ -55,27 +62,18 @@ function normalizeSettingSteps(value) {
   return { ok: true, deltas };
 }
 
-function leafOf(node) {
-  let current = node;
-  while (current && Number.isInteger(current.repeat) && Array.isArray(current.body)) current = current.body[0];
-  return current;
+function settingDeltasForKey(deltas, key) {
+  return deltas.map((axisDeltas) => axisDeltas && Object.prototype.hasOwnProperty.call(axisDeltas, key)
+    ? axisDeltas[key]
+    : null);
 }
 
 function settingExpression(base, key, deltas) {
-  let out = base;
-  for (let axis = 0; axis < 3; axis += 1) {
-    if (!deltas[axis] || deltas[axis][key] === undefined || deltas[axis][key] === 0) continue;
-    out = ["+", out, ["*", ["var", VARS[axis]], deltas[axis][key]]];
-  }
-  return out;
+  return affineScalarExpression(base, settingDeltasForKey(deltas, key));
 }
 
-function generatedRotation(grid, index) {
-  const base = Array.isArray(grid.instance.rot) ? grid.instance.rot : [0, 0, 0];
-  return base.map((value, component) => value + index.reduce((sum, item, axis) => {
-    const delta = grid.rot_step && Array.isArray(grid.rot_step[AXES[axis]]) ? grid.rot_step[AXES[axis]][component] : 0;
-    return sum + item * delta;
-  }, 0));
+function rotationDeltas(grid) {
+  return AXES.map((axis) => grid.rot_step && Array.isArray(grid.rot_step[axis]) ? grid.rot_step[axis] : null);
 }
 
 function generatedScale(grid, index) {
@@ -84,50 +82,41 @@ function generatedScale(grid, index) {
     if (Array.isArray(grid.instance.scale)) return grid.instance.scale.slice();
     return [grid.instance.scale === undefined ? 1 : grid.instance.scale];
   }
+
   const first = Object.keys(step).sort()[0];
   const vector = first !== undefined && Array.isArray(step[first]);
   if (!vector) {
     const base = grid.instance.scale === undefined ? 1 : grid.instance.scale;
-    return [base + index.reduce((sum, item, axis) => {
-      const delta = typeof step[AXES[axis]] === "number" ? step[AXES[axis]] : 0;
-      return sum + item * delta;
-    }, 0)];
+    const deltas = AXES.map((axis) => typeof step[axis] === "number" ? step[axis] : null);
+    return [affineScalar(base, index, deltas)];
   }
+
   const base = grid.instance.scale === undefined ? [1, 1, 1] : grid.instance.scale;
-  return base.map((value, component) => value + index.reduce((sum, item, axis) => {
-    const delta = Array.isArray(step[AXES[axis]]) ? step[AXES[axis]][component] : 0;
-    return sum + item * delta;
-  }, 0));
+  const deltas = AXES.map((axis) => Array.isArray(step[axis]) ? step[axis] : null);
+  return affineVector(base, index, deltas);
 }
 
 function proveDomain(grid, deltas, baseSettings) {
   const counts = grid.counts;
   const pos0 = Array.isArray(grid.instance.pos) ? grid.instance.pos : [0, 0, 0];
+  const rot0 = Array.isArray(grid.instance.rot) ? grid.instance.rot : [0, 0, 0];
+  const rotDeltas = rotationDeltas(grid);
   const settingKeys = Object.keys(baseSettings).sort();
-  const seen = new Set();
 
-  for (let gx = 0; gx < counts[0]; gx += 1) {
-    for (let gy = 0; gy < counts[1]; gy += 1) {
-      for (let gz = 0; gz < counts[2]; gz += 1) {
-        const index = [gx, gy, gz];
-        const pos = pos0.map((base, axis) => base + index[axis] * grid.step[axis]);
-        const rot = generatedRotation(grid, index);
-        const scale = generatedScale(grid, index);
-        const settings = settingKeys.map((key) => baseSettings[key] + index.reduce((sum, item, axis) => {
-          const delta = deltas[axis] && deltas[axis][key] !== undefined ? deltas[axis][key] : 0;
-          return sum + item * delta;
-        }, 0));
-        const state = pos.concat(rot, scale, settings);
-        if (state.some((value) => !Number.isFinite(value))) {
-          return hold("HOLD_FORM_GRID_INVALID", `grid position/rotation/scale/setting progression produces a non-finite generated state at [${gx},${gy},${gz}]`);
-        }
-        const key = JSON.stringify(state);
-        if (seen.has(key)) {
-          return hold("HOLD_FORM_GRID_INVALID", `grid position/rotation/scale/setting progression produces a duplicate authored state at [${gx},${gy},${gz}]`);
-        }
-        seen.add(key);
-      }
+  const proof = proveFiniteDistinctCartesian(counts, (index) => {
+    const pos = pos0.map((base, axis) => base + index[axis] * grid.step[axis]);
+    const rot = affineVector(rot0, index, rotDeltas);
+    const scale = generatedScale(grid, index);
+    const settings = settingKeys.map((key) => affineScalar(baseSettings[key], index, settingDeltasForKey(deltas, key)));
+    return pos.concat(rot, scale, settings);
+  });
+
+  if (!proof.ok) {
+    const where = `[${proof.index.join(",")}]`;
+    if (proof.reason === "nonfinite") {
+      return hold("HOLD_FORM_GRID_INVALID", `grid position/rotation/scale/setting progression produces a non-finite generated state at ${where}`);
     }
+    return hold("HOLD_FORM_GRID_INVALID", `grid position/rotation/scale/setting progression produces a duplicate authored state at ${where}`);
   }
   return { ok: true };
 }
