@@ -15,3 +15,10 @@ test("shared linear finite-domain proof reports the first generated overflow", (
     { ok: false, reason: "nonfinite", index: 1 }
   );
 });
+
+test("shared linear finite-domain proof preserves target-specific domain detail", () => {
+  assert.deepEqual(
+    proveFiniteLinear(4, 2, -1, (value) => value <= 0 ? { value } : null),
+    { ok: false, reason: "domain", index: 2, detail: { value: 0 } }
+  );
+});
