@@ -2,11 +2,11 @@
 
 const { normalizeGridWithSize } = require("./grid-size");
 const { rotationDeltasFromGrid } = require("./grid-rotation");
+const { generatedScaleFromGrid } = require("./grid-scale-state");
 const {
   AXES,
   leafOf,
   affineVector,
-  affineScalar,
   affineExpression,
   affineScalarExpression,
   axisAlignedVectorDeltas,
@@ -93,9 +93,7 @@ function proveDomain(grid, scale) {
     (index) => {
       const pos = affineVector(pos0, index, positionDeltas);
       const rot = affineVector(rot0, index, rotDeltas);
-      const generatedScale = scale.kind === "scalar"
-        ? [affineScalar(baseScale, index, scale.deltas)]
-        : affineVector(baseScale, index, scale.deltas);
+      const generatedScale = generatedScaleFromGrid(grid, index);
       return pos.concat(rot, generatedScale);
     },
     (state) => state.slice(-scaleWidth).some((value) => value <= 0) ? "scale_nonpositive" : null

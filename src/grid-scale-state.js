@@ -2,8 +2,8 @@
 
 const { AXES, affineVector, affineScalar } = require("./grid-progression");
 
-// Internal downstream representation for grid scale after the scale lane has
-// already validated the authored scale_step/base-scale contract.
+// Internal generated-state representation for grid scale after the scale lane
+// has validated the authored scale_step/base-scale contract.
 function generatedScaleFromGrid(grid, index) {
   const target = grid && grid.instance ? grid.instance : {};
   const step = grid && grid.scale_step;
