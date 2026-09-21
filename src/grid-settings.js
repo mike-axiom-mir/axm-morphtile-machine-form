@@ -9,6 +9,7 @@ const {
   affineExpression,
   affineScalarExpression,
   axisAlignedVectorDeltas,
+  progressionValidationStep,
   proveFiniteDistinctCartesian
 } = require("./grid-progression");
 
@@ -133,12 +134,8 @@ function normalizeGridWithSettings(grid) {
 
   const validationGrid = { ...grid };
   delete validationGrid.with_step;
-  if (Array.isArray(grid.counts) && grid.counts.length === 3 && Array.isArray(grid.step) && grid.step.length === 3) {
-    validationGrid.step = grid.step.slice();
-    for (let axis = 0; axis < 3; axis += 1) {
-      if (grid.counts[axis] > 1 && validationGrid.step[axis] === 0 && settings.deltas[axis]) validationGrid.step[axis] = 1;
-    }
-  }
+  const validationStep = progressionValidationStep(grid.step, grid.counts, settings.deltas);
+  if (validationStep) validationGrid.step = validationStep;
 
   const normalized = normalizeGridWithScale(validationGrid);
   if (!normalized.ok) return normalized;
