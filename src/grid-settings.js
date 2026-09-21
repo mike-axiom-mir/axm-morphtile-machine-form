@@ -1,6 +1,7 @@
 "use strict";
 
 const { normalizeGridWithScale } = require("./grid-scale");
+const { generatedScaleFromGrid } = require("./grid-scale-state");
 const { rotationDeltasFromGrid } = require("./grid-rotation");
 const {
   AXES,
@@ -75,26 +76,6 @@ function settingExpression(base, key, deltas) {
   return affineScalarExpression(base, settingDeltasForKey(deltas, key));
 }
 
-function generatedScale(grid, index) {
-  const step = grid.scale_step;
-  if (!step) {
-    if (Array.isArray(grid.instance.scale)) return grid.instance.scale.slice();
-    return [grid.instance.scale === undefined ? 1 : grid.instance.scale];
-  }
-
-  const first = Object.keys(step).sort()[0];
-  const vector = first !== undefined && Array.isArray(step[first]);
-  if (!vector) {
-    const base = grid.instance.scale === undefined ? 1 : grid.instance.scale;
-    const deltas = AXES.map((axis) => typeof step[axis] === "number" ? step[axis] : null);
-    return [affineScalar(base, index, deltas)];
-  }
-
-  const base = grid.instance.scale === undefined ? [1, 1, 1] : grid.instance.scale;
-  const deltas = AXES.map((axis) => Array.isArray(step[axis]) ? step[axis] : null);
-  return affineVector(base, index, deltas);
-}
-
 function proveDomain(grid, deltas, baseSettings) {
   const counts = grid.counts;
   const pos0 = Array.isArray(grid.instance.pos) ? grid.instance.pos : [0, 0, 0];
@@ -106,7 +87,7 @@ function proveDomain(grid, deltas, baseSettings) {
   const proof = proveFiniteDistinctCartesian(counts, (index) => {
     const pos = affineVector(pos0, index, posDeltas);
     const rot = affineVector(rot0, index, rotDeltas);
-    const scale = generatedScale(grid, index);
+    const scale = generatedScaleFromGrid(grid, index);
     const settings = settingKeys.map((key) => affineScalar(baseSettings[key], index, settingDeltasForKey(deltas, key)));
     return pos.concat(rot, scale, settings);
   });
