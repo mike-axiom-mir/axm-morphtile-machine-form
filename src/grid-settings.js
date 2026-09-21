@@ -1,6 +1,7 @@
 "use strict";
 
 const { normalizeGridWithScale } = require("./grid-scale");
+const { rotationDeltasFromGrid } = require("./grid-rotation");
 const {
   AXES,
   leafOf,
@@ -74,10 +75,6 @@ function settingExpression(base, key, deltas) {
   return affineScalarExpression(base, settingDeltasForKey(deltas, key));
 }
 
-function rotationDeltas(grid) {
-  return AXES.map((axis) => grid.rot_step && Array.isArray(grid.rot_step[axis]) ? grid.rot_step[axis] : null);
-}
-
 function generatedScale(grid, index) {
   const step = grid.scale_step;
   if (!step) {
@@ -103,7 +100,7 @@ function proveDomain(grid, deltas, baseSettings) {
   const pos0 = Array.isArray(grid.instance.pos) ? grid.instance.pos : [0, 0, 0];
   const posDeltas = axisAlignedVectorDeltas(grid.step, counts);
   const rot0 = Array.isArray(grid.instance.rot) ? grid.instance.rot : [0, 0, 0];
-  const rotDeltas = rotationDeltas(grid);
+  const rotDeltas = rotationDeltasFromGrid(grid);
   const settingKeys = Object.keys(baseSettings).sort();
 
   const proof = proveFiniteDistinctCartesian(counts, (index) => {
