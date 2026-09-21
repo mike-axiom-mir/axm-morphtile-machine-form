@@ -26,9 +26,32 @@ function proveFiniteRepeat(count, stateAt, validateState) {
   return { ok: true };
 }
 
+function proveFiniteDistinctRepeat(count, stateAt, validateState) {
+  const seen = new Set();
+  for (let index = 0; index < count; index += 1) {
+    const state = stateAt(index);
+    if (!Array.isArray(state) || state.some((value) => typeof value !== "number" || !Number.isFinite(value))) {
+      return { ok: false, reason: "nonfinite", index };
+    }
+    if (validateState) {
+      const detail = validateState(state, index);
+      if (detail !== null && detail !== undefined && detail !== false) {
+        return { ok: false, reason: "domain", index, detail };
+      }
+    }
+    const key = JSON.stringify(state);
+    if (seen.has(key)) {
+      return { ok: false, reason: "duplicate", index };
+    }
+    seen.add(key);
+  }
+  return { ok: true };
+}
+
 module.exports = {
   INDEX_VAR,
   linearValue,
   linearExpression,
-  proveFiniteRepeat
+  proveFiniteRepeat,
+  proveFiniteDistinctRepeat
 };
