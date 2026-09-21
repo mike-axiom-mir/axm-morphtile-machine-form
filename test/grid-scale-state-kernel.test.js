@@ -2,7 +2,7 @@
 
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { generatedScaleFromGrid } = require("../src/grid-scale");
+const { generatedScaleFromGrid } = require("../src/grid-scale-state");
 
 test("generatedScaleFromGrid owns canonical scalar scale state without mutating authored input", () => {
   const grid = {
