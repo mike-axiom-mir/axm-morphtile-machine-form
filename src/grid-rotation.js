@@ -3,10 +3,10 @@
 const { normalizeGrid } = require("./form-vocabulary");
 const {
   AXES: AXIS_KEYS,
-  VARS: AXIS_VARS,
   leafOf,
   affineVector,
   affineExpression,
+  axisAlignedVectorDeltas,
   proveFiniteDistinctCartesian
 } = require("./grid-progression");
 
@@ -49,8 +49,9 @@ function targetOf(grid) {
 }
 
 function proveGeneratedStates(counts, step, basePos, baseRot, deltas) {
+  const positionDeltas = axisAlignedVectorDeltas(step, counts);
   const proof = proveFiniteDistinctCartesian(counts, (index) => {
-    const pos = basePos.map((base, axis) => base + index[axis] * step[axis]);
+    const pos = affineVector(basePos, index, positionDeltas);
     const rot = affineVector(baseRot, index, deltas);
     return pos.concat(rot);
   });
@@ -106,10 +107,8 @@ function normalizeGridWithRotation(grid) {
   if (!closure.ok) return closure;
 
   const leaf = leafOf(normalized.data);
-  leaf.pos = basePos.map((base, axis) => {
-    if (counts[axis] === 1 || step[axis] === 0) return base;
-    return ["+", base, ["*", ["var", AXIS_VARS[axis]], step[axis]]];
-  });
+  const positionDeltas = axisAlignedVectorDeltas(step, counts);
+  leaf.pos = basePos.map((base, component) => affineExpression(base, component, positionDeltas));
   leaf.rot = baseRot.map((base, component) => affineExpression(base, component, rotation.deltas));
 
   return normalized;
