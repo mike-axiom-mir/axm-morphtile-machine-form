@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.16.0 — 2026-09-21
+
+- Added bounded per-axis `grid.rot_step` for primitive and definition-instance grids using fixed `x`, `y`, and `z` progression keys over existing `gx`, `gy`, and `gz` loop variables.
+- An active grid axis may remain at one translation coordinate only when that same axis has a validated rotation progression; active axes with neither movement nor their own progression still HOLD.
+- Proves every generated position+rotation state across the complete 2..64-cell grid is finite and unique as authored state before emission; canceling multidimensional progressions HOLD instead of silently stacking cells.
+- Reuses the same rule inside `intent.compose` and keeps the emitted grid compact instead of materializing placements or exposing arbitrary expression authoring.
+- Added pinned-runtime proof that current MorphTile consumes the emitted per-cell rotation expression as finite changing geometry relative to a fixed-rotation control.
+- Preserved an intermediate receiver-found defect where inactive progression axes were emitted as `null` expression terms; repaired it by omitting inactive axes rather than coercing them.
+- Kept grid setting, primitive-size and definition-scale progression HELD as separate multidimensional semantics.
+
 ## 0.15.0 — 2026-09-21
 
 - Added a bounded repeat-distinctness rule so `step: [0,0,0]` may be used when an existing validated `with_step`, `rot_step`, `size_step`, or `scale_step` changes authored target state.
