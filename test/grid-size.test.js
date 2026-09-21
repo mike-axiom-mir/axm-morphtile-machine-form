@@ -157,14 +157,18 @@ test("an active grid axis still needs translation, rotation, or size progression
   assert.equal(out.holds[0].code, "HOLD_FORM_GRID_INVALID");
 });
 
-integrationTest("pinned MorphTile consumes emitted grid size expressions as finite changing geometry", () => {
+integrationTest("pinned MorphTile consumes multi-axis grid size expressions as finite changing geometry", () => {
   assert.equal(runtimeCommit, manifest.tested_against.commit, "CI runtime must match machine.json pin");
   const MorphTile = require(path.resolve(runtimePath));
   const out = run(request("runtime-grid-size", {
     grid: {
-      counts: [3, 1, 1],
+      counts: [2, 2, 1],
       step: [0, 0, 0],
-      size_step: { x: [0.25, 0.15, 0] },
+      size_step: {
+        x: [0.25, 0, 0],
+        y: [0, 0.15, 0]
+      },
+      rot_step: { y: [0, 0.1, 0] },
       part: { shape: "wedge", size: [1, 2, 1] }
     }
   }));
@@ -175,13 +179,13 @@ integrationTest("pinned MorphTile consumes emitted grid size expressions as fini
   assert.equal(validity.ok, true, validity.errors.join(", "));
   const compiled = MorphTile.compileMesh(tile);
   assert.equal(compiled.hold, null);
-  assert.equal(compiled.recipe_parts, 3);
+  assert.equal(compiled.recipe_parts, 4);
   assert.ok(compiled.P.length > 0);
   assert.ok(compiled.P.every((value) => Number.isFinite(value)));
 
   const fixedCandidate = JSON.parse(JSON.stringify(out.candidate));
-  fixedCandidate.facets.mesh.data.parts[0].body[0].size = [1, 2, 1];
+  fixedCandidate.facets.mesh.data.parts[0].body[0].body[0].size = [1, 2, 1];
   const fixedCompiled = MorphTile.compileMesh(MorphTile.createTile(fixedCandidate));
   assert.equal(fixedCompiled.hold, null);
-  assert.notDeepEqual(compiled.P, fixedCompiled.P, "receiver must consume emitted per-cell size expressions");
+  assert.notDeepEqual(compiled.P, fixedCompiled.P, "receiver must consume emitted multi-axis per-cell size expressions");
 });
