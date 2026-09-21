@@ -1,6 +1,6 @@
 # Status
 
-- Foundation version: 0.17.0
+- Foundation version: 0.18.0
 - State: CANDIDATE — EXACT-HEAD CI + INDEPENDENT REVIEW REQUIRED
 - Local test command: npm test
 - Pinned runtime target: MorphTile v0.4 at 2bdf8eade1376055473b9cc1b11734b72a5566e5
@@ -26,50 +26,55 @@
 - Definition repeats may include bounded scalar or vector `scale_step`; the complete positive finite generated scale/component domain is proved before emission, and scalar/vector coercion is not guessed.
 - Repeat may remain at one translation coordinate when another validated progression changes authored target state.
 - Grid may include bounded per-axis `rot_step`; active axes may remain translation-stationary when their own rotation progression changes authored state.
+- Primitive grids may include bounded per-axis `size_step`; positive finite size and full position+rotation+size Cartesian distinctness are proved before emission.
 - Generated repeat/grid/progression expressions are checked over their complete bounded domain before emission so non-finite expansions HOLD in Form Machine.
 - The complete caller-authored request is descriptor-safe preflighted before normalization/JSON transport; non-portable values, accessors, serialization hooks and live/revoked Proxies fail closed without caller execution.
 - Definition-instance `with` settings use prototype-independent storage so authored own keys remain data rather than host-language prototype behavior.
 
-## 0.17.0 candidate — bounded per-axis primitive grid size progression
+## 0.18.0 candidate — bounded per-axis definition grid scale progression
 
-The existing grid rule already had fixed `gx`, `gy`, and `gz` loop variables, and MorphTile already evaluates expression-valued primitive size in recipe scope. The missing machine vocabulary was a bounded producer rule for multidimensional primitive growth/taper without exposing arbitrary expression authoring.
+The repeat lane already had bounded scalar/vector definition `scale_step`, while the grid lane already had fixed `gx`, `gy`, and `gz` loop variables plus bounded per-axis rotation. Current MorphTile already evaluates expression-valued definition-use scale in recipe scope. The remaining machine gap was a bounded multidimensional producer rule for whole reusable-form scale progression.
 
-This candidate adds optional primitive-only `grid.size_step`:
+This candidate adds optional definition-only `grid.scale_step`:
 
-- `size_step` is keyed only by `x`, `y`, or `z`;
-- each provided grid axis carries exactly three finite dimension deltas and must change at least one size component;
-- each provided size-progression axis must have at least two cells;
-- a primitive grid axis may remain at one translation coordinate when that same axis has validated size progression;
-- active axes with neither translation nor their own rotation/size progression still HOLD;
-- size and rotation progression may coexist and share the fixed `gx`/`gy`/`gz` variables;
-- every generated primitive size component across the complete bounded Cartesian domain must remain finite and strictly positive;
-- the complete generated position+rotation+size authored-state domain must remain distinct, so cross-axis cancellation cannot silently stack cells;
+- `scale_step` is keyed only by `x`, `y`, or `z`;
+- each provided axis carries either one finite non-zero scalar delta or exactly three finite vector deltas with at least one changed component;
+- all provided grid axes must use the same scalar/vector representation;
+- scalar progression requires scalar `instance.scale` or omitted unit scale;
+- vector progression requires vector `instance.scale` or omitted unit vector `[1,1,1]`;
+- scalar/vector base-step coercion and mixed scalar/vector grid axes HOLD rather than inventing broadcast semantics;
+- each provided scale-progression axis must have at least two cells;
+- a definition grid axis may remain translation-stationary when that same axis owns validated scale progression;
+- active axes with neither translation nor their own rotation/scale progression still HOLD;
+- scale and existing rotation progression may coexist and share the fixed `gx`/`gy`/`gz` variables;
+- every generated scale component across the complete bounded Cartesian domain must remain finite and strictly positive;
+- the complete generated position+rotation+scale authored-state domain must remain distinct, including non-adjacent cross-axis cancellation;
 - standalone `intent.grid` and grid blocks inside `intent.compose` share the exact same rule;
-- definition-instance grids reject `size_step` rather than inventing primitive-size semantics for reusable forms;
-- pinned-runtime conformance requires current MorphTile to consume a real multi-axis size progression with simultaneous rotation and compile finite changing geometry.
+- primitive grids reject `scale_step` and continue to use primitive `size_step` instead;
+- pinned-runtime conformance requires current MorphTile to resolve a real definition, consume multi-axis per-cell scale expressions with simultaneous rotation, compile four finite recipe parts, and differ from a fixed-scale control.
 
-This is an authored-state rule, not a visual uniqueness claim. Different dimensions/rotations can still produce visually equivalent results for some symmetric matter.
+This is an authored-state rule, not a visual uniqueness claim. Different scale/rotation states can still look equivalent for some symmetric or externally defined matter.
 
 ## Placement
 
-This belongs in Form Machine, not MorphTile core. Current MorphTile already owns the universal nested-loop and expression-evaluation substrate, including expression-valued primitive size. The missing piece was bounded creation vocabulary plus producer-side Cartesian-domain proof.
+This belongs in Form Machine, not MorphTile core. Current MorphTile already owns definition `use`, expression-valued scale, nested recipe loops, loop variables and expression evaluation. The missing piece was bounded creation vocabulary plus producer-side Cartesian-domain proof.
 
 No MorphTile-core candidate is justified by this change.
 
 ## Evidence boundary
 
-Regression-first head `ff4fbabdbfaa51a99fafd0f98ba70d1398d1d155` intentionally failed before the capability existed: Actions run `35552238964` completed FAILURE with 284 pass / 6 fail, all six new grid-size regressions red while the inherited suite stayed green.
+Regression-first head `53ef8211f1876f807627978a2be73d090113b7cb` intentionally failed before the capability existed; PR-triggered Actions run `35555607978` completed FAILURE.
 
-Functional implementation head `9bdc0cde8a1fac5995ef96474fc19278633d1809` passed all 290 tests against pinned MorphTile `2bdf8eade1376055473b9cc1b11734b72a5566e5` in Actions run `35552345443`. The runtime receipt was then strengthened to require multi-axis size progression plus rotation through the real receiver before final exact-head publication.
+Functional implementation head `f685894d1b9c325159aa088bb2d47bcc4fae832f` then passed PR-triggered Actions run `35555720791`, including `npm test` against pinned MorphTile `2bdf8eade1376055473b9cc1b11734b72a5566e5`.
 
-Final exact-head CI must remain green after version/documentation/receipt updates, and independent Verification should replay that exact head before Director integration.
+Final exact-head CI must remain green after version/documentation receipts, and independent Verification should replay that exact head before Director integration.
 
-Unit regressions cover stationary-axis primitive size progression, multi-axis size + rotation composition, compose reuse, malformed/no-op/inactive/wrong-target inputs, non-positive generated size, finite-authored overflow, cross-axis cancellation collision, and preservation of the active-axis distinctness rule. Runtime conformance covers real current-core compilation and compares changing-size output with a fixed-size control. Visual/aesthetic quality remains outside these receipts.
+Unit regressions cover stationary-axis scalar scale progression, multi-axis vector progression with rotation, compose reuse, malformed/no-op/inactive/wrong-target inputs, scalar/vector mismatch and mixed-axis representation rejection, non-positive generated scale, finite-authored overflow, cross-axis Cartesian collision, and preservation of the active-axis distinctness rule. Runtime conformance covers real current-core definition resolution and compares changing-scale output with a fixed-scale control. Visual/aesthetic quality remains outside these receipts.
 
 ## HELD / open
 
 Independent Verification of the final exact candidate head.
 
-Scalar/vector step/base coercion, multidimensional grid definition-setting and definition-scale progression, arbitrary geometry generation, autonomous form invention, recursive/general nested-loop synthesis, conditions, arbitrary expression synthesis, automatic definition discovery, visual proof, aesthetic acceptance and production readiness remain held.
+Multidimensional grid definition-setting progression, scalar/vector coercion or broadcasting, arbitrary geometry generation, autonomous form invention, recursive/general nested-loop synthesis, conditions, arbitrary expression synthesis, automatic definition discovery, visual proof, aesthetic acceptance and production readiness remain held.
 
 No claim of production readiness, CANON, or visual quality is made.
