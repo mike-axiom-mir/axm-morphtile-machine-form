@@ -3,12 +3,12 @@
 const { normalizeGridWithSize } = require("./grid-size");
 const {
   AXES,
-  VARS,
   leafOf,
   affineVector,
   affineScalar,
   affineExpression,
   affineScalarExpression,
+  axisAlignedVectorDeltas,
   proveFiniteDistinctCartesian
 } = require("./grid-progression");
 
@@ -74,6 +74,7 @@ function proveDomain(grid, scale) {
   const pos0 = Array.isArray(target.pos) ? target.pos : [0, 0, 0];
   const rot0 = Array.isArray(target.rot) ? target.rot : [0, 0, 0];
   const rotDeltas = rotationDeltas(grid);
+  const positionDeltas = axisAlignedVectorDeltas(step, counts);
 
   let baseScale;
   if (scale.kind === "scalar") {
@@ -92,7 +93,7 @@ function proveDomain(grid, scale) {
   const proof = proveFiniteDistinctCartesian(
     counts,
     (index) => {
-      const pos = pos0.map((base, axis) => base + index[axis] * step[axis]);
+      const pos = affineVector(pos0, index, positionDeltas);
       const rot = affineVector(rot0, index, rotDeltas);
       const generatedScale = scale.kind === "scalar"
         ? [affineScalar(baseScale, index, scale.deltas)]
@@ -148,7 +149,8 @@ function normalizeGridWithScale(grid) {
 
   const leaf = leafOf(normalized.data);
   const pos0 = Array.isArray(grid.instance.pos) ? grid.instance.pos.slice() : [0, 0, 0];
-  leaf.pos = pos0.map((base, axis) => grid.counts[axis] === 1 || grid.step[axis] === 0 ? base : ["+", base, ["*", ["var", VARS[axis]], grid.step[axis]]]);
+  const positionDeltas = axisAlignedVectorDeltas(grid.step, grid.counts);
+  leaf.pos = pos0.map((base, component) => affineExpression(base, component, positionDeltas));
   if (scale.kind === "scalar") {
     leaf.scale = affineScalarExpression(closure.baseScale, scale.deltas);
   } else {
