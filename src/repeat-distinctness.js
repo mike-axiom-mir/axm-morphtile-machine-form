@@ -1,12 +1,12 @@
 "use strict";
 
 const { normalizeRepeatWithScale } = require("./repeat-scale");
+const { positionStateFromRepeat, generatedPositionFromRepeat } = require("./repeat-position-state");
 const { generatedRotationFromRepeat } = require("./repeat-rotation-state");
 const { generatedScaleFromRepeat } = require("./repeat-scale-state");
 const { generatedSettingValues } = require("./repeat-setting-state");
 const { generatedSizeFromRepeat } = require("./repeat-size-state");
 const {
-  linearVector,
   repeatValidationStep,
   proveFiniteDistinctRepeat
 } = require("./repeat-progression");
@@ -26,16 +26,14 @@ function authoredTarget(repeat) {
 }
 
 function authoredBasePosition(repeat) {
-  const target = authoredTarget(repeat);
-  return target && Array.isArray(target.pos) ? target.pos.slice() : [0, 0, 0];
+  return positionStateFromRepeat(repeat).base;
 }
 
 function generatedRepeatState(repeat, index) {
   const target = authoredTarget(repeat);
   const state = [];
 
-  const basePos = Array.isArray(target.pos) ? target.pos : [0, 0, 0];
-  state.push(...linearVector(basePos, index, repeat.step));
+  state.push(...generatedPositionFromRepeat(repeat, index));
 
   state.push(...generatedRotationFromRepeat(repeat, index));
 
