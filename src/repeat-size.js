@@ -1,6 +1,7 @@
 "use strict";
 
 const { normalizeRepeatWithRotation } = require("./repeat-rotation");
+const { sizeStateFromRepeat } = require("./repeat-size-state");
 const { linearVectorExpression, proveFiniteLinear } = require("./repeat-progression");
 
 function hold(code, detail) {
@@ -60,13 +61,13 @@ function normalizeRepeatWithSize(repeat) {
   }
 
   const repeatedTarget = normalized.data.body[0];
-  const baseSize = repeatedTarget.size;
+  const size = sizeStateFromRepeat(repeat);
   for (let axis = 0; axis < 3; axis += 1) {
-    const closure = positiveFiniteSizeProgression(baseSize[axis], sizeStep.value[axis], normalized.data.repeat, axis);
+    const closure = positiveFiniteSizeProgression(size.base[axis], size.delta[axis], normalized.data.repeat, axis);
     if (!closure.ok) return closure;
   }
 
-  repeatedTarget.size = linearVectorExpression(baseSize, sizeStep.value);
+  repeatedTarget.size = linearVectorExpression(size.base, size.delta);
 
   return normalized;
 }
