@@ -1,6 +1,7 @@
 "use strict";
 
 const { normalizeRepeatWithSize } = require("./repeat-size");
+const { linearValue, linearExpression, proveFiniteRepeat } = require("./repeat-progression");
 
 function hold(code, detail) {
   return { ok: false, hold: { code, detail } };
@@ -27,20 +28,22 @@ function normalizeScaleStep(value) {
 }
 
 function positiveFiniteScaleProgression(base, delta, count, name = "repeat scale") {
-  for (let index = 0; index < count; index += 1) {
-    const value = base + index * delta;
-    if (!Number.isFinite(value)) {
+  const proof = proveFiniteRepeat(
+    count,
+    (index) => [linearValue(base, index, delta)],
+    (state) => state[0] <= 0 ? { value: state[0] } : null
+  );
+  if (!proof.ok) {
+    if (proof.reason === "nonfinite") {
       return hold(
         "HOLD_FORM_REPEAT_INVALID",
-        `${name} produces a non-finite generated value at index ${index}`
+        `${name} produces a non-finite generated value at index ${proof.index}`
       );
     }
-    if (value <= 0) {
-      return hold(
-        "HOLD_FORM_REPEAT_INVALID",
-        `${name} must stay positive across the complete repeat domain; index ${index} produced ${value}`
-      );
-    }
+    return hold(
+      "HOLD_FORM_REPEAT_INVALID",
+      `${name} must stay positive across the complete repeat domain; index ${proof.index} produced ${proof.detail.value}`
+    );
   }
   return { ok: true };
 }
@@ -73,7 +76,7 @@ function normalizeRepeatWithScale(repeat) {
     const baseScale = repeatedTarget.scale === undefined ? 1 : repeatedTarget.scale;
     const closure = positiveFiniteScaleProgression(baseScale, scaleStep.value, normalized.data.repeat);
     if (!closure.ok) return closure;
-    repeatedTarget.scale = ["+", baseScale, ["*", ["var", "i"], scaleStep.value]];
+    repeatedTarget.scale = linearExpression(baseScale, scaleStep.value);
     return normalized;
   }
 
@@ -90,10 +93,7 @@ function normalizeRepeatWithScale(repeat) {
     );
     if (!closure.ok) return closure;
   }
-  repeatedTarget.scale = baseScale.map((base, axis) => {
-    const delta = scaleStep.value[axis];
-    return delta === 0 ? base : ["+", base, ["*", ["var", "i"], delta]];
-  });
+  repeatedTarget.scale = baseScale.map((base, axis) => linearExpression(base, scaleStep.value[axis]));
   return normalized;
 }
 
