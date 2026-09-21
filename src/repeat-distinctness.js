@@ -1,6 +1,7 @@
 "use strict";
 
 const { normalizeRepeatWithScale } = require("./repeat-scale");
+const { generatedScaleFromRepeat } = require("./repeat-scale-state");
 const {
   linearValue,
   linearVector,
@@ -45,17 +46,7 @@ function generatedRepeatState(repeat, index) {
     return state;
   }
 
-  if (Array.isArray(repeat.scale_step)) {
-    const baseScale = target.scale === undefined ? [1, 1, 1] : target.scale;
-    state.push(...linearVector(baseScale, index, repeat.scale_step));
-  } else {
-    const baseScale = target.scale === undefined ? 1 : target.scale;
-    if (Array.isArray(baseScale)) {
-      state.push(...baseScale);
-    } else {
-      state.push(linearValue(baseScale, index, typeof repeat.scale_step === "number" ? repeat.scale_step : 0));
-    }
-  }
+  state.push(...generatedScaleFromRepeat(repeat, index));
 
   const baseSettings = target.with || {};
   const settingStep = repeat.with_step || {};
