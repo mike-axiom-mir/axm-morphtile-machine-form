@@ -32,17 +32,17 @@ Integrated behavior includes:
 
 The integrated foundation does not claim visual uniqueness merely because authored state differs.
 
-## Current draft candidate — repeat vector generated-state convergence
+## Current draft candidate — repeat vector arithmetic convergence
 
-The current candidate adds no public syntax or geometry capability. The repeat complete-state distinctness proof still rebuilt the same three-component `base + index * delta` arithmetic separately for position, rotation, primitive size, and vector instance scale even though repeat scalar arithmetic is already owned by `repeat-progression.js`.
+The current candidate adds no public syntax or geometry capability. Repeat code still rebuilt the same three-component linear arithmetic in two places: the complete-state proof separately calculated generated position, rotation, primitive size, and vector instance scale, while rotation/size/vector-scale emitters each independently mapped the same scalar expression rule over three components.
 
-The repeat progression kernel now owns `linearVector(base, index, deltas)` as the canonical immutable vector companion to `linearValue`. The complete-state proof consumes it for those four vector components while preserving scalar scale, definition-setting order, complete-state proof authority, emitted recipe expressions, and established HOLD behavior.
+The repeat progression kernel now owns two bounded vector companions to its existing scalar rules: `linearVector(base, index, deltas)` for generated numeric state and `linearVectorExpression(base, deltas)` for emitted repeat expressions. The complete-state proof consumes the numeric helper; rotation, primitive-size, and vector-scale emitters consume the expression helper. Scalar scale, definition-setting order, semantic validation, complete-state proof authority, and established HOLD behavior remain local and unchanged.
 
-This is behavior-preserving convergence, so no regression-first-red claim is made. A focused kernel test pins generated vector values, copied output, and caller-input immutability; inherited repeat progression/distinctness/runtime-conformance tests remain the public behavior evidence surface. Exact candidate-head CI must be green before independent Verification.
+This is behavior-preserving convergence, so no regression-first-red claim is made. Focused kernel coverage pins generated vector values, canonical vector expressions, copied output, and caller-input immutability; inherited repeat rotation/size/scale/distinctness/runtime-conformance tests remain the public behavior evidence surface. Exact candidate-head CI must be green before independent Verification.
 
 ## Placement
 
-This candidate belongs in Form Machine, not MorphTile core. MorphTile already owns recipe loops, lexical loop variables, expression evaluation, definition use, and geometry execution. This candidate only removes repeated producer-side generated-vector arithmetic from a Form-owned proof.
+This candidate belongs in Form Machine, not MorphTile core. MorphTile already owns recipe loops, lexical loop variables, expression evaluation, definition use, and geometry execution. This candidate removes repeated producer-side vector arithmetic from Form-owned creation/proof paths; it does not expose a missing universal substrate primitive.
 
 MorphTile core PR #17 remains the occupied intentionally-red repeat lexical-scope presentation HOLD and is not duplicated here.
 
