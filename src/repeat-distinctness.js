@@ -1,6 +1,7 @@
 "use strict";
 
 const { normalizeRepeatWithScale } = require("./repeat-scale");
+const { generatedRotationFromRepeat } = require("./repeat-rotation-state");
 const { generatedScaleFromRepeat } = require("./repeat-scale-state");
 const { generatedSettingValues } = require("./repeat-setting-state");
 const {
@@ -35,9 +36,7 @@ function generatedRepeatState(repeat, index) {
   const basePos = Array.isArray(target.pos) ? target.pos : [0, 0, 0];
   state.push(...linearVector(basePos, index, repeat.step));
 
-  const baseRot = Array.isArray(target.rot) ? target.rot : [0, 0, 0];
-  const rotStep = Array.isArray(repeat.rot_step) ? repeat.rot_step : [0, 0, 0];
-  state.push(...linearVector(baseRot, index, rotStep));
+  state.push(...generatedRotationFromRepeat(repeat, index));
 
   if (repeat.part !== undefined) {
     const baseSize = Array.isArray(target.size) ? target.size : [1, 1, 1];
