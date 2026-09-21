@@ -1,6 +1,7 @@
 "use strict";
 
 const { normalizeGridWithSize } = require("./grid-size");
+const { rotationDeltasFromGrid } = require("./grid-rotation");
 const {
   AXES,
   leafOf,
@@ -64,17 +65,13 @@ function normalizeScaleSteps(value) {
   return { ok: true, kind, deltas };
 }
 
-function rotationDeltas(grid) {
-  return AXES.map((axis) => grid.rot_step && Array.isArray(grid.rot_step[axis]) ? grid.rot_step[axis] : null);
-}
-
 function proveDomain(grid, scale) {
   const target = grid.instance;
   const counts = grid.counts;
   const step = grid.step;
   const pos0 = Array.isArray(target.pos) ? target.pos : [0, 0, 0];
   const rot0 = Array.isArray(target.rot) ? target.rot : [0, 0, 0];
-  const rotDeltas = rotationDeltas(grid);
+  const rotDeltas = rotationDeltasFromGrid(grid);
   const positionDeltas = axisAlignedVectorDeltas(step, counts);
 
   let baseScale;

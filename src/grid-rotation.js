@@ -45,6 +45,12 @@ function normalizeRotationStep(value) {
   return { ok: true, deltas };
 }
 
+function rotationDeltasFromGrid(grid) {
+  return AXIS_KEYS.map((axis) => grid && grid.rot_step && Array.isArray(grid.rot_step[axis])
+    ? grid.rot_step[axis].slice()
+    : null);
+}
+
 function targetOf(grid) {
   return grid.part !== undefined ? grid.part : grid.instance;
 }
@@ -109,4 +115,4 @@ function normalizeGridWithRotation(grid) {
   return normalized;
 }
 
-module.exports = { normalizeGridWithRotation };
+module.exports = { normalizeGridWithRotation, rotationDeltasFromGrid };

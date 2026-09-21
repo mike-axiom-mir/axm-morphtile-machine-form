@@ -1,6 +1,6 @@
 "use strict";
 
-const { normalizeGridWithRotation } = require("./grid-rotation");
+const { normalizeGridWithRotation, rotationDeltasFromGrid } = require("./grid-rotation");
 const {
   AXES,
   leafOf,
@@ -41,10 +41,6 @@ function normalizeSizeStep(value) {
   return { ok: true, deltas };
 }
 
-function rotationDeltas(grid) {
-  return AXES.map((axis) => grid.rot_step && Array.isArray(grid.rot_step[axis]) ? grid.rot_step[axis] : null);
-}
-
 function proveDomain(grid, sizeDeltas) {
   const target = grid.part;
   const counts = grid.counts;
@@ -52,7 +48,7 @@ function proveDomain(grid, sizeDeltas) {
   const pos0 = Array.isArray(target.pos) ? target.pos : [0, 0, 0];
   const rot0 = Array.isArray(target.rot) ? target.rot : [0, 0, 0];
   const size0 = Array.isArray(target.size) ? target.size : [1, 1, 1];
-  const rotDeltas = rotationDeltas(grid);
+  const rotDeltas = rotationDeltasFromGrid(grid);
   const positionDeltas = axisAlignedVectorDeltas(step, counts);
   const proof = proveFiniteDistinctCartesian(
     counts,
