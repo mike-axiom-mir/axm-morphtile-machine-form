@@ -47,6 +47,25 @@ test("repeat rejects in-place progression when its finite authored delta collaps
   assert.equal(JSON.stringify(input), before);
 });
 
+test("repeat complete-state proof allows another bounded field to distinguish collapsed translation", () => {
+  const out = run(request("repeat-combined-distinctness", {
+    count: 2,
+    step: [1, 0, 0],
+    part: {
+      shape: "box",
+      pos: [Number.MAX_SAFE_INTEGER + 1, 0, 0]
+    },
+    rot_step: [1, 0, 0]
+  }));
+
+  assert.equal(out.status, "CANDIDATE");
+  assert.deepEqual(out.candidate.facets.mesh.data.parts[0].body[0].rot, [
+    ["+", 0, ["*", ["var", "i"], 1]],
+    0,
+    0
+  ]);
+});
+
 test("repeat complete-state proof preserves ordinary distinct in-place progression", () => {
   const input = request("repeat-distinct-setting-progression", {
     count: 3,
