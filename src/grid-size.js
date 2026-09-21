@@ -1,9 +1,14 @@
 "use strict";
 
 const { normalizeGridWithRotation } = require("./grid-rotation");
-
-const AXES = ["x", "y", "z"];
-const VARS = ["gx", "gy", "gz"];
+const {
+  AXES,
+  VARS,
+  leafOf,
+  affineVector,
+  affineExpression,
+  proveFiniteDistinctCartesian
+} = require("./grid-progression");
 
 function hold(code, detail) {
   return { ok: false, hold: { code, detail } };
@@ -35,21 +40,6 @@ function normalizeSizeStep(value) {
   return { ok: true, deltas };
 }
 
-function leafOf(node) {
-  let current = node;
-  while (current && Number.isInteger(current.repeat) && Array.isArray(current.body)) current = current.body[0];
-  return current;
-}
-
-function expr(base, component, deltas) {
-  let out = base;
-  for (let axis = 0; axis < 3; axis += 1) {
-    if (!deltas[axis] || deltas[axis][component] === 0) continue;
-    out = ["+", out, ["*", ["var", VARS[axis]], deltas[axis][component]]];
-  }
-  return out;
-}
-
 function rotationDeltas(grid) {
   return AXES.map((axis) => grid.rot_step && Array.isArray(grid.rot_step[axis]) ? grid.rot_step[axis] : null);
 }
@@ -62,30 +52,25 @@ function proveDomain(grid, sizeDeltas) {
   const rot0 = Array.isArray(target.rot) ? target.rot : [0, 0, 0];
   const size0 = Array.isArray(target.size) ? target.size : [1, 1, 1];
   const rotDeltas = rotationDeltas(grid);
-  const seen = new Set();
-
-  for (let gx = 0; gx < counts[0]; gx += 1) {
-    for (let gy = 0; gy < counts[1]; gy += 1) {
-      for (let gz = 0; gz < counts[2]; gz += 1) {
-        const index = [gx, gy, gz];
-        const pos = pos0.map((base, axis) => base + index[axis] * step[axis]);
-        const rot = rot0.map((base, component) => base + index.reduce((sum, item, axis) => sum + (rotDeltas[axis] ? item * rotDeltas[axis][component] : 0), 0));
-        const size = size0.map((base, component) => base + index.reduce((sum, item, axis) => sum + (sizeDeltas[axis] ? item * sizeDeltas[axis][component] : 0), 0));
-        if (pos.concat(rot, size).some((value) => !Number.isFinite(value))) {
-          return hold("HOLD_FORM_GRID_INVALID", `grid position/rotation/size progression produces a non-finite generated state at [${gx},${gy},${gz}]`);
-        }
-        if (size.some((value) => value <= 0)) {
-          return hold("HOLD_FORM_GRID_INVALID", `grid size progression must stay greater than zero across the complete Cartesian domain; generated state [${gx},${gy},${gz}] is invalid`);
-        }
-        const key = JSON.stringify(pos.concat(rot, size));
-        if (seen.has(key)) {
-          return hold("HOLD_FORM_GRID_INVALID", `grid position/rotation/size progression produces a duplicate authored state at [${gx},${gy},${gz}]`);
-        }
-        seen.add(key);
-      }
-    }
+  const proof = proveFiniteDistinctCartesian(
+    counts,
+    (index) => {
+      const pos = pos0.map((base, axis) => base + index[axis] * step[axis]);
+      const rot = affineVector(rot0, index, rotDeltas);
+      const size = affineVector(size0, index, sizeDeltas);
+      return pos.concat(rot, size);
+    },
+    (state) => state.slice(-3).some((value) => value <= 0) ? "size_nonpositive" : null
+  );
+  if (proof.ok) return proof;
+  const where = `[${proof.index.join(",")}]`;
+  if (proof.reason === "nonfinite") {
+    return hold("HOLD_FORM_GRID_INVALID", `grid position/rotation/size progression produces a non-finite generated state at ${where}`);
   }
-  return { ok: true };
+  if (proof.reason === "domain") {
+    return hold("HOLD_FORM_GRID_INVALID", `grid size progression must stay greater than zero across the complete Cartesian domain; generated state ${where} is invalid`);
+  }
+  return hold("HOLD_FORM_GRID_INVALID", `grid position/rotation/size progression produces a duplicate authored state at ${where}`);
 }
 
 function normalizeGridWithSize(grid) {
@@ -124,7 +109,7 @@ function normalizeGridWithSize(grid) {
   const pos0 = Array.isArray(grid.part.pos) ? grid.part.pos.slice() : [0, 0, 0];
   const size0 = Array.isArray(grid.part.size) ? grid.part.size.slice() : [1, 1, 1];
   leaf.pos = pos0.map((base, axis) => grid.counts[axis] === 1 || grid.step[axis] === 0 ? base : ["+", base, ["*", ["var", VARS[axis]], grid.step[axis]]]);
-  leaf.size = size0.map((base, component) => expr(base, component, size.deltas));
+  leaf.size = size0.map((base, component) => affineExpression(base, component, size.deltas));
   return normalized;
 }
 

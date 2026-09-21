@@ -1,9 +1,14 @@
 "use strict";
 
 const { normalizeGrid } = require("./form-vocabulary");
-
-const AXIS_KEYS = Object.freeze(["x", "y", "z"]);
-const AXIS_VARS = Object.freeze(["gx", "gy", "gz"]);
+const {
+  AXES: AXIS_KEYS,
+  VARS: AXIS_VARS,
+  leafOf,
+  affineVector,
+  affineExpression,
+  proveFiniteDistinctCartesian
+} = require("./grid-progression");
 
 function hold(code, detail) {
   return { ok: false, hold: { code, detail } };
@@ -43,60 +48,18 @@ function targetOf(grid) {
   return grid.part !== undefined ? grid.part : grid.instance;
 }
 
-function leafOf(node) {
-  let current = node;
-  while (current && typeof current === "object" && Number.isInteger(current.repeat) && Array.isArray(current.body)) {
-    current = current.body[0];
-  }
-  return current;
-}
-
-function expressionFor(base, component, deltas) {
-  let expression = base;
-  for (let axis = 0; axis < 3; axis += 1) {
-    const axisDelta = deltas[axis];
-    if (!axisDelta) continue;
-    const delta = axisDelta[component];
-    if (delta === 0) continue;
-    expression = ["+", expression, ["*", ["var", AXIS_VARS[axis]], delta]];
-  }
-  return expression;
-}
-
 function proveGeneratedStates(counts, step, basePos, baseRot, deltas) {
-  const seen = new Set();
-  for (let gx = 0; gx < counts[0]; gx += 1) {
-    for (let gy = 0; gy < counts[1]; gy += 1) {
-      for (let gz = 0; gz < counts[2]; gz += 1) {
-        const index = [gx, gy, gz];
-        const pos = basePos.map((base, axis) => base + index[axis] * step[axis]);
-        const rot = baseRot.map((base, component) => {
-          let value = base;
-          for (let axis = 0; axis < 3; axis += 1) {
-            if (deltas[axis]) value += index[axis] * deltas[axis][component];
-          }
-          return value;
-        });
-
-        if (pos.some((value) => !Number.isFinite(value)) || rot.some((value) => !Number.isFinite(value))) {
-          return hold(
-            "HOLD_FORM_GRID_INVALID",
-            `grid rotation/position progression produces a non-finite generated state at [${gx},${gy},${gz}]`
-          );
-        }
-
-        const key = JSON.stringify(pos.concat(rot));
-        if (seen.has(key)) {
-          return hold(
-            "HOLD_FORM_GRID_INVALID",
-            `grid rotation/position progression produces a duplicate authored state at [${gx},${gy},${gz}]`
-          );
-        }
-        seen.add(key);
-      }
-    }
+  const proof = proveFiniteDistinctCartesian(counts, (index) => {
+    const pos = basePos.map((base, axis) => base + index[axis] * step[axis]);
+    const rot = affineVector(baseRot, index, deltas);
+    return pos.concat(rot);
+  });
+  if (proof.ok) return proof;
+  const where = `[${proof.index.join(",")}]`;
+  if (proof.reason === "nonfinite") {
+    return hold("HOLD_FORM_GRID_INVALID", `grid rotation/position progression produces a non-finite generated state at ${where}`);
   }
-  return { ok: true };
+  return hold("HOLD_FORM_GRID_INVALID", `grid rotation/position progression produces a duplicate authored state at ${where}`);
 }
 
 function normalizeGridWithRotation(grid) {
@@ -147,7 +110,7 @@ function normalizeGridWithRotation(grid) {
     if (counts[axis] === 1 || step[axis] === 0) return base;
     return ["+", base, ["*", ["var", AXIS_VARS[axis]], step[axis]]];
   });
-  leaf.rot = baseRot.map((base, component) => expressionFor(base, component, rotation.deltas));
+  leaf.rot = baseRot.map((base, component) => affineExpression(base, component, rotation.deltas));
 
   return normalized;
 }
