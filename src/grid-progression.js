@@ -55,6 +55,15 @@ function affineScalarExpression(base, deltas) {
   return out;
 }
 
+function axisAlignedVectorDeltas(step, counts) {
+  return step.map((delta, axis) => {
+    if (delta === 0 || (counts && counts[axis] === 1)) return null;
+    const vector = [0, 0, 0];
+    vector[axis] = delta;
+    return vector;
+  });
+}
+
 function proveFiniteDistinctCartesian(counts, stateAt, validateState) {
   const seen = new Set();
   let failure = null;
@@ -91,5 +100,6 @@ module.exports = {
   affineScalar,
   affineExpression,
   affineScalarExpression,
+  axisAlignedVectorDeltas,
   proveFiniteDistinctCartesian
 };
