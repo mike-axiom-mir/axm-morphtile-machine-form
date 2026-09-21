@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.17.0 — 2026-09-21
+
+- Added bounded per-axis primitive `grid.size_step` using fixed `x`, `y`, and `z` progression keys over existing `gx`, `gy`, and `gz` loop variables.
+- A primitive grid axis may remain at one translation coordinate when that same axis has validated size progression; active axes with neither translation nor their own rotation/size progression still HOLD.
+- Requires exactly three finite dimension deltas per provided axis, at least one changed size component, and at least two cells on every size-progression axis.
+- Proves every generated primitive size component stays finite and strictly positive across the complete Cartesian grid before emission.
+- Proves combined position+rotation+size authored states stay distinct, so cross-axis cancellation cannot silently stack cells.
+- Allows bounded grid size and rotation progression to coexist through the same compact nested-loop substrate and reuses the exact rule inside `intent.compose`.
+- Definition-instance grids reject `size_step`; grid definition-setting and definition-scale progression remain separate HELD semantics.
+- Added pinned-runtime proof that current MorphTile consumes multi-axis per-cell size expressions with simultaneous rotation and compiles finite changing geometry relative to a fixed-size control.
+- Preserved regression-first evidence: head `ff4fbabdbfaa51a99fafd0f98ba70d1398d1d155` produced 284 pass / 6 expected fail before the capability existed.
+
 ## 0.16.0 — 2026-09-21
 
 - Added bounded per-axis `grid.rot_step` for primitive and definition-instance grids using fixed `x`, `y`, and `z` progression keys over existing `gx`, `gy`, and `gz` loop variables.
