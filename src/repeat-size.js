@@ -1,6 +1,7 @@
 "use strict";
 
 const { normalizeRepeatWithRotation } = require("./repeat-rotation");
+const { linearValue, linearExpression, proveFiniteRepeat } = require("./repeat-progression");
 
 function hold(code, detail) {
   return { ok: false, hold: { code, detail } };
@@ -17,20 +18,22 @@ function normalizeSizeStep(value) {
 }
 
 function positiveFiniteSizeProgression(base, delta, count, axis) {
-  for (let index = 0; index < count; index += 1) {
-    const value = base + index * delta;
-    if (!Number.isFinite(value)) {
+  const proof = proveFiniteRepeat(
+    count,
+    (index) => [linearValue(base, index, delta)],
+    (state) => state[0] <= 0 ? { value: state[0] } : null
+  );
+  if (!proof.ok) {
+    if (proof.reason === "nonfinite") {
       return hold(
         "HOLD_FORM_REPEAT_INVALID",
-        `repeat size axis ${axis} produces a non-finite generated value at index ${index}`
+        `repeat size axis ${axis} produces a non-finite generated value at index ${proof.index}`
       );
     }
-    if (value <= 0) {
-      return hold(
-        "HOLD_FORM_REPEAT_INVALID",
-        `repeat size axis ${axis} must stay greater than zero across the complete repeat domain; index ${index} would be ${value}`
-      );
-    }
+    return hold(
+      "HOLD_FORM_REPEAT_INVALID",
+      `repeat size axis ${axis} must stay greater than zero across the complete repeat domain; index ${proof.index} would be ${proof.detail.value}`
+    );
   }
   return { ok: true };
 }
@@ -62,10 +65,7 @@ function normalizeRepeatWithSize(repeat) {
     if (!closure.ok) return closure;
   }
 
-  repeatedTarget.size = baseSize.map((base, axis) => {
-    const delta = sizeStep.value[axis];
-    return delta === 0 ? base : ["+", base, ["*", ["var", "i"], delta]];
-  });
+  repeatedTarget.size = baseSize.map((base, axis) => linearExpression(base, sizeStep.value[axis]));
 
   return normalized;
 }

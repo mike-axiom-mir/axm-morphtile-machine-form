@@ -1,6 +1,7 @@
 "use strict";
 
 const { normalizePrimitiveRepeat } = require("./form-vocabulary");
+const { linearValue, linearExpression, proveFiniteRepeat } = require("./repeat-progression");
 
 function hold(code, detail) {
   return { ok: false, hold: { code, detail } };
@@ -17,13 +18,12 @@ function normalizeRotationStep(value) {
 }
 
 function finiteRotationProgression(base, delta, count, axis) {
-  for (let index = 0; index < count; index += 1) {
-    if (!Number.isFinite(base + index * delta)) {
-      return hold(
-        "HOLD_FORM_REPEAT_INVALID",
-        `repeat rotation axis ${axis} produces a non-finite generated value at index ${index}`
-      );
-    }
+  const proof = proveFiniteRepeat(count, (index) => [linearValue(base, index, delta)]);
+  if (!proof.ok) {
+    return hold(
+      "HOLD_FORM_REPEAT_INVALID",
+      `repeat rotation axis ${axis} produces a non-finite generated value at index ${proof.index}`
+    );
   }
   return { ok: true };
 }
@@ -53,10 +53,7 @@ function normalizeRepeatWithRotation(repeat) {
     if (!closure.ok) return closure;
   }
 
-  repeatedTarget.rot = baseRot.map((base, axis) => {
-    const delta = rotStep.value[axis];
-    return delta === 0 ? base : ["+", base, ["*", ["var", "i"], delta]];
-  });
+  repeatedTarget.rot = baseRot.map((base, axis) => linearExpression(base, rotStep.value[axis]));
 
   return normalized;
 }
