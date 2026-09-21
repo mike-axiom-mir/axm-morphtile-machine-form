@@ -1,6 +1,7 @@
 "use strict";
 
 const { normalizeRepeatWithScale } = require("./repeat-scale");
+const { linearValue, proveFiniteDistinctRepeat } = require("./repeat-progression");
 
 const PROGRESSION_KEYS = Object.freeze(["with_step", "rot_step", "size_step", "scale_step"]);
 
@@ -18,9 +19,76 @@ function isExactZeroStep(step) {
     && step.every((value) => typeof value === "number" && value === 0);
 }
 
+function authoredTarget(repeat) {
+  return repeat.part !== undefined ? repeat.part : repeat.instance;
+}
+
 function authoredBasePosition(repeat) {
-  const target = repeat.part !== undefined ? repeat.part : repeat.instance;
+  const target = authoredTarget(repeat);
   return target && Array.isArray(target.pos) ? target.pos.slice() : [0, 0, 0];
+}
+
+function generatedRepeatState(repeat, index) {
+  const target = authoredTarget(repeat);
+  const state = [];
+
+  const basePos = Array.isArray(target.pos) ? target.pos : [0, 0, 0];
+  for (let axis = 0; axis < 3; axis += 1) {
+    state.push(linearValue(basePos[axis], index, repeat.step[axis]));
+  }
+
+  const baseRot = Array.isArray(target.rot) ? target.rot : [0, 0, 0];
+  const rotStep = Array.isArray(repeat.rot_step) ? repeat.rot_step : [0, 0, 0];
+  for (let axis = 0; axis < 3; axis += 1) {
+    state.push(linearValue(baseRot[axis], index, rotStep[axis]));
+  }
+
+  if (repeat.part !== undefined) {
+    const baseSize = Array.isArray(target.size) ? target.size : [1, 1, 1];
+    const sizeStep = Array.isArray(repeat.size_step) ? repeat.size_step : [0, 0, 0];
+    for (let axis = 0; axis < 3; axis += 1) {
+      state.push(linearValue(baseSize[axis], index, sizeStep[axis]));
+    }
+    return state;
+  }
+
+  if (Array.isArray(repeat.scale_step)) {
+    const baseScale = target.scale === undefined ? [1, 1, 1] : target.scale;
+    for (let axis = 0; axis < 3; axis += 1) {
+      state.push(linearValue(baseScale[axis], index, repeat.scale_step[axis]));
+    }
+  } else {
+    const baseScale = target.scale === undefined ? 1 : target.scale;
+    if (Array.isArray(baseScale)) {
+      state.push(...baseScale);
+    } else {
+      state.push(linearValue(baseScale, index, typeof repeat.scale_step === "number" ? repeat.scale_step : 0));
+    }
+  }
+
+  const baseSettings = target.with || {};
+  const settingStep = repeat.with_step || {};
+  for (const key of Object.keys(baseSettings).sort()) {
+    const delta = Object.prototype.hasOwnProperty.call(settingStep, key) ? settingStep[key] : 0;
+    state.push(linearValue(baseSettings[key], index, delta));
+  }
+
+  return state;
+}
+
+function proveAuthoredDistinctness(repeat) {
+  const proof = proveFiniteDistinctRepeat(repeat.count, (index) => generatedRepeatState(repeat, index));
+  if (proof.ok) return proof;
+  if (proof.reason === "nonfinite") {
+    return hold(
+      "HOLD_FORM_REPEAT_INVALID",
+      `repeat generated authored state becomes non-finite at index ${proof.index}`
+    );
+  }
+  return hold(
+    "HOLD_FORM_REPEAT_INVALID",
+    `repeat generated authored state is a duplicate authored state at index ${proof.index}`
+  );
 }
 
 function normalizeRepeatWithDistinctness(repeat) {
@@ -37,21 +105,24 @@ function normalizeRepeatWithDistinctness(repeat) {
     );
   }
 
+  let normalized;
   if (!isExactZeroStep(repeat.step) || !hasBoundedProgression(repeat)) {
-    return normalizeRepeatWithScale(repeat);
+    normalized = normalizeRepeatWithScale(repeat);
+  } else {
+    // Base repeat normalization historically used non-zero translation as its
+    // first admissibility check. A validated progression can also distinguish
+    // placements, so use private validation-only movement and restore authored
+    // position before returning any candidate matter. Complete generated-state
+    // distinctness is proved below against the original authored repeat.
+    const validationRepeat = Object.assign(Object.create(null), repeat, { step: [1, 0, 0] });
+    normalized = normalizeRepeatWithScale(validationRepeat);
+    if (normalized.ok) normalized.data.body[0].pos = authoredBasePosition(repeat);
   }
 
-  // Base repeat normalization historically used non-zero translation as its
-  // only proof that placements differ. Progression rules now provide another
-  // bounded source of authored difference. Reuse the existing full progression
-  // validator with a private validation-only movement, then restore the exact
-  // authored zero position before returning any candidate matter. The private
-  // step is never emitted and never reaches MorphTile.
-  const validationRepeat = Object.assign(Object.create(null), repeat, { step: [1, 0, 0] });
-  const normalized = normalizeRepeatWithScale(validationRepeat);
   if (!normalized.ok) return normalized;
 
-  normalized.data.body[0].pos = authoredBasePosition(repeat);
+  const distinctness = proveAuthoredDistinctness(repeat);
+  if (!distinctness.ok) return distinctness;
   return normalized;
 }
 
