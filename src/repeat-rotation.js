@@ -1,7 +1,7 @@
 "use strict";
 
 const { normalizePrimitiveRepeat } = require("./form-vocabulary");
-const { linearExpression, proveFiniteLinear } = require("./repeat-progression");
+const { linearVectorExpression, proveFiniteLinear } = require("./repeat-progression");
 
 function hold(code, detail) {
   return { ok: false, hold: { code, detail } };
@@ -53,7 +53,7 @@ function normalizeRepeatWithRotation(repeat) {
     if (!closure.ok) return closure;
   }
 
-  repeatedTarget.rot = baseRot.map((base, axis) => linearExpression(base, rotStep.value[axis]));
+  repeatedTarget.rot = linearVectorExpression(baseRot, rotStep.value);
 
   return normalized;
 }

@@ -4,7 +4,9 @@ const assert = require("node:assert/strict");
 const {
   INDEX_VAR,
   linearValue,
+  linearVector,
   linearExpression,
+  linearVectorExpression,
   repeatValidationStep,
   proveFiniteRepeat,
   proveFiniteDistinctRepeat
@@ -15,6 +17,21 @@ test("shared repeat progression kernel owns stable linear arithmetic", () => {
   assert.equal(linearValue(2, 3, 0.5), 3.5);
   assert.deepEqual(linearExpression(2, 0.5), ["+", 2, ["*", ["var", "i"], 0.5]]);
   assert.equal(linearExpression(2, 0), 2);
+});
+
+test("shared repeat progression kernel owns immutable vector arithmetic", () => {
+  const base = [1, 2, 3];
+  const deltas = [0.5, -1, 0];
+  const generated = linearVector(base, 2, deltas);
+
+  assert.deepEqual(generated, [2, 0, 3]);
+  assert.deepEqual(
+    linearVectorExpression(base, deltas),
+    [["+", 1, ["*", ["var", "i"], 0.5]], ["+", 2, ["*", ["var", "i"], -1]], 3]
+  );
+  assert.deepEqual(base, [1, 2, 3]);
+  assert.deepEqual(deltas, [0.5, -1, 0]);
+  assert.notEqual(generated, base);
 });
 
 test("shared repeat validation movement is bounded, private, and immutable", () => {

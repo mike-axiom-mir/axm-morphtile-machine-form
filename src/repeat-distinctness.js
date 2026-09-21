@@ -3,6 +3,7 @@
 const { normalizeRepeatWithScale } = require("./repeat-scale");
 const {
   linearValue,
+  linearVector,
   repeatValidationStep,
   proveFiniteDistinctRepeat
 } = require("./repeat-progression");
@@ -31,30 +32,22 @@ function generatedRepeatState(repeat, index) {
   const state = [];
 
   const basePos = Array.isArray(target.pos) ? target.pos : [0, 0, 0];
-  for (let axis = 0; axis < 3; axis += 1) {
-    state.push(linearValue(basePos[axis], index, repeat.step[axis]));
-  }
+  state.push(...linearVector(basePos, index, repeat.step));
 
   const baseRot = Array.isArray(target.rot) ? target.rot : [0, 0, 0];
   const rotStep = Array.isArray(repeat.rot_step) ? repeat.rot_step : [0, 0, 0];
-  for (let axis = 0; axis < 3; axis += 1) {
-    state.push(linearValue(baseRot[axis], index, rotStep[axis]));
-  }
+  state.push(...linearVector(baseRot, index, rotStep));
 
   if (repeat.part !== undefined) {
     const baseSize = Array.isArray(target.size) ? target.size : [1, 1, 1];
     const sizeStep = Array.isArray(repeat.size_step) ? repeat.size_step : [0, 0, 0];
-    for (let axis = 0; axis < 3; axis += 1) {
-      state.push(linearValue(baseSize[axis], index, sizeStep[axis]));
-    }
+    state.push(...linearVector(baseSize, index, sizeStep));
     return state;
   }
 
   if (Array.isArray(repeat.scale_step)) {
     const baseScale = target.scale === undefined ? [1, 1, 1] : target.scale;
-    for (let axis = 0; axis < 3; axis += 1) {
-      state.push(linearValue(baseScale[axis], index, repeat.scale_step[axis]));
-    }
+    state.push(...linearVector(baseScale, index, repeat.scale_step));
   } else {
     const baseScale = target.scale === undefined ? 1 : target.scale;
     if (Array.isArray(baseScale)) {
