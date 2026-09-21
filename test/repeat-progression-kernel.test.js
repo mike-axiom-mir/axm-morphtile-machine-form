@@ -5,6 +5,7 @@ const {
   INDEX_VAR,
   linearValue,
   linearExpression,
+  repeatValidationStep,
   proveFiniteRepeat,
   proveFiniteDistinctRepeat
 } = require("../src/repeat-progression");
@@ -14,6 +15,22 @@ test("shared repeat progression kernel owns stable linear arithmetic", () => {
   assert.equal(linearValue(2, 3, 0.5), 3.5);
   assert.deepEqual(linearExpression(2, 0.5), ["+", 2, ["*", ["var", "i"], 0.5]]);
   assert.equal(linearExpression(2, 0), 2);
+});
+
+test("shared repeat validation movement is bounded, private, and immutable", () => {
+  const zeroStep = [0, 0, 0];
+  const moved = repeatValidationStep(zeroStep, true);
+  assert.deepEqual(moved, [1, 0, 0]);
+  assert.deepEqual(zeroStep, [0, 0, 0]);
+  assert.notEqual(moved, zeroStep);
+
+  const authored = [2, 0, -3];
+  assert.deepEqual(repeatValidationStep(authored, true), authored);
+  assert.notEqual(repeatValidationStep(authored, true), authored);
+  assert.deepEqual(repeatValidationStep(zeroStep, false), zeroStep);
+
+  assert.equal(repeatValidationStep([0, 0], true), null);
+  assert.equal(repeatValidationStep("0,0,0", true), null);
 });
 
 test("shared repeat progression proof reports finite, domain, and overflow boundaries", () => {
