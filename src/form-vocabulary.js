@@ -1,5 +1,7 @@
 "use strict";
 
+const { linearValue, linearExpression, proveFiniteRepeat } = require("./repeat-progression");
+
 const PRIMITIVES = Object.freeze(["box", "sphere", "cylinder", "cone", "wedge", "plane"]);
 const RADIAL = new Set(["sphere", "cylinder", "cone"]);
 const PART_KEYS = new Set(["shape", "size", "pos", "rot", "segments", "taper", "sub"]);
@@ -67,6 +69,14 @@ function finiteLinearProgression(base, delta, count, name, holdCode) {
     if (!Number.isFinite(base + index * delta)) {
       return hold(holdCode, `${name} produces a non-finite generated value at index ${index}`);
     }
+  }
+  return { ok: true };
+}
+
+function finiteRepeatProgression(base, delta, count, name) {
+  const proof = proveFiniteRepeat(count, (index) => [linearValue(base, index, delta)]);
+  if (!proof.ok) {
+    return hold("HOLD_FORM_REPEAT_INVALID", `${name} produces a non-finite generated value at index ${proof.index}`);
   }
   return { ok: true };
 }
@@ -255,18 +265,10 @@ function normalizeRepeatSettingStep(withStep, target, count) {
     if (typeof delta !== "number" || !Number.isFinite(delta)) {
       return hold("HOLD_FORM_REPEAT_INVALID", `repeat.with_step.${key} must be a finite number`);
     }
-    const closure = finiteLinearProgression(
-      baseSettings[key],
-      delta,
-      count,
-      `repeat.with_step.${key}`,
-      "HOLD_FORM_REPEAT_INVALID"
-    );
+    const closure = finiteRepeatProgression(baseSettings[key], delta, count, `repeat.with_step.${key}`);
     if (!closure.ok) return closure;
     changesSetting ||= delta !== 0;
-    stepped[key] = delta === 0
-      ? baseSettings[key]
-      : ["+", baseSettings[key], ["*", ["var", "i"], delta]];
+    stepped[key] = linearExpression(baseSettings[key], delta);
   }
 
   if (!changesSetting) {
@@ -310,21 +312,17 @@ function normalizePrimitiveRepeat(repeat) {
 
   const basePos = target.data.pos || [0, 0, 0];
   for (let axis = 0; axis < 3; axis++) {
-    const closure = finiteLinearProgression(
+    const closure = finiteRepeatProgression(
       basePos[axis],
       step.value[axis],
       count.value,
-      `repeat position axis ${axis}`,
-      "HOLD_FORM_REPEAT_INVALID"
+      `repeat position axis ${axis}`
     );
     if (!closure.ok) return closure;
   }
 
   const repeatedTarget = { ...target.data };
-  repeatedTarget.pos = basePos.map((base, axis) => {
-    const delta = step.value[axis];
-    return delta === 0 ? base : ["+", base, ["*", ["var", "i"], delta]];
-  });
+  repeatedTarget.pos = basePos.map((base, axis) => linearExpression(base, step.value[axis]));
 
   if (repeat.with_step !== undefined) {
     if (targetModes[0] !== "instance") {
