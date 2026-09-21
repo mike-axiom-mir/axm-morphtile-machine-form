@@ -2,8 +2,13 @@
 
 const { linearValue, linearVector } = require("./repeat-progression");
 
-// Internal generated-state representation for repeat scale after the scale lane
-// has validated the authored scale_step/base-scale contract.
+function copyScale(value) {
+  return Array.isArray(value) ? value.slice() : value;
+}
+
+// Internal generated-state representation for repeat scale. The scale lane
+// still owns compatibility/positivity validation; this helper only preserves
+// one deterministic interpretation of authored/default scale state.
 function scaleStateFromRepeat(repeat) {
   const target = repeat && repeat.instance ? repeat.instance : {};
   const step = repeat && repeat.scale_step;
@@ -11,7 +16,7 @@ function scaleStateFromRepeat(repeat) {
   if (Array.isArray(step)) {
     return {
       kind: "vector",
-      base: target.scale === undefined ? [1, 1, 1] : target.scale.slice(),
+      base: target.scale === undefined ? [1, 1, 1] : copyScale(target.scale),
       delta: step.slice()
     };
   }
@@ -19,7 +24,7 @@ function scaleStateFromRepeat(repeat) {
   if (typeof step === "number") {
     return {
       kind: "scalar",
-      base: target.scale === undefined ? 1 : target.scale,
+      base: target.scale === undefined ? 1 : copyScale(target.scale),
       delta: step
     };
   }
