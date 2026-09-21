@@ -1,7 +1,7 @@
 "use strict";
 
 const { normalizeRepeatWithSize } = require("./repeat-size");
-const { linearExpression, proveFiniteLinear } = require("./repeat-progression");
+const { linearExpression, linearVectorExpression, proveFiniteLinear } = require("./repeat-progression");
 
 function hold(code, detail) {
   return { ok: false, hold: { code, detail } };
@@ -94,7 +94,7 @@ function normalizeRepeatWithScale(repeat) {
     );
     if (!closure.ok) return closure;
   }
-  repeatedTarget.scale = baseScale.map((base, axis) => linearExpression(base, scaleStep.value[axis]));
+  repeatedTarget.scale = linearVectorExpression(baseScale, scaleStep.value);
   return normalized;
 }
 
