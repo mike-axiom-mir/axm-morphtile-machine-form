@@ -2,7 +2,7 @@
 
 - Foundation version: 0.19.0
 - State: INTEGRATED FOUNDATION + DRAFT INTERNAL-CONVERGENCE CANDIDATE
-- Integrated Form baseline: `58a9c272257fed179b0136671c2fcfb42ac7dfe2`
+- Integrated Form baseline: `d4da0515c290b0b504c02b9d29e974d3add4e6b5`
 - Local test command: `npm test`
 - Pinned runtime target: MorphTile v0.4 at `2bdf8eade1376055473b9cc1b11734b72a5566e5`
 - Envelope: provisional v0.1
@@ -10,7 +10,7 @@
 
 ## Integrated foundation
 
-The current main baseline includes the bounded 0.19.0 Form vocabulary plus independently verified convergence and correctness work through Form PR #34. Public intent remains bounded to explicit primitives, flat parts, direct/repeat/grid mixed composition, reusable definition instances, and the already-established repeat/grid progression rules.
+The current main baseline includes the bounded 0.19.0 Form vocabulary plus independently verified convergence and correctness work through Form PR #35. Public intent remains bounded to explicit primitives, flat parts, direct/repeat/grid mixed composition, reusable definition instances, and the already-established repeat/grid progression rules.
 
 Integrated behavior includes:
 
@@ -23,23 +23,23 @@ Integrated behavior includes:
 - base-grid generated-position distinctness proof for ordinary translation-only grids;
 - shared deterministic repeat/grid progression arithmetic kernels;
 - central base-repeat arithmetic converged on the repeat kernel;
-- base-grid, rotation-grid, primitive-size-grid, and definition-scale-grid position arithmetic converged on one axis-aligned grid-position representation;
+- all established grid progression lanes now share the canonical axis-aligned generated-position representation;
 - descriptor-safe caller-input preflight and prototype-independent authored definition-setting storage;
 - pinned-current-core conformance through MorphTile public create/validate/compile contracts.
 
 The integrated foundation does not claim visual uniqueness merely because authored state differs.
 
-## Current draft candidate — definition-setting grid position convergence
+## Current draft candidate — grid progression validation movement convergence
 
-The current draft candidate does not add public syntax or geometry capability. It completes the remaining evidenced axis-aligned position convergence in the definition-setting grid lane after Form PR #34 established the shared `axisAlignedVectorDeltas(step, counts)` representation.
+The current draft candidate does not add public syntax or geometry capability. It centralizes the private validation-only movement used when a stationary grid axis is legitimately distinguished by rotation, primitive-size, definition-scale, or definition-setting progression.
 
-`grid-settings.js` now reuses that shared representation for both complete generated-state proof and emitted position expressions. Definition-setting semantics remain local: exact own-key setting identity, numeric setting bases/deltas, scale/rotation composition, HOLD behavior, and complete-state duplicate detection are unchanged.
+`grid-progression.js` now owns one bounded `progressionValidationStep(step, counts, deltas)` primitive. Rotation, size, scale, and setting grid normalizers consume that helper instead of independently rewriting stationary active axes to validation movement. The helper only acts on structurally valid three-axis inputs, copies caller-owned step state, changes only zero-translation axes with more than one cell and an active progression, and never emits candidate matter itself. Existing progression layers remain responsible for proving the complete authored state and restoring/emitting the actual authored position expressions.
 
-A focused convergence regression pins canonical position expressions, inactive one-cell-axis omission, setting progression composition, deterministic replay, and caller-input immutability.
+A regression-first kernel test pins active-axis bounds, one-cell-axis non-leakage, scalar progression handling, malformed structural decline, and caller-input immutability. The inherited suite continues to cover the public rotation/size/scale/setting progression behavior and pinned MorphTile receiver contract.
 
 ## Placement
 
-This candidate belongs in Form Machine, not MorphTile core. MorphTile already owns compact recipe loops, lexical loop variables, expression evaluation, definition use, and runtime geometry execution. This is producer-side arithmetic convergence after verified Form work, not evidence of a missing universal representation/runtime primitive.
+This candidate belongs in Form Machine, not MorphTile core. MorphTile already owns compact recipe loops, lexical loop variables, expression evaluation, definition use, and runtime geometry execution. The candidate only converges producer-side validation scaffolding that exists because Form layers preserve the established base-grid validation contract.
 
 The separate MorphTile-core repeat lexical-scope presentation HOLD remains an occupied core lane and is not duplicated here.
 
