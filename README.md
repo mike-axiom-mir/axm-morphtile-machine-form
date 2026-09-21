@@ -1,6 +1,6 @@
 # MorphTile Form Machine
 
-Turns bounded form intent into candidate MorphTile mesh matter. v0.17.0 recognizes MorphTile's explicit primitive vocabulary — box, sphere, cylinder, cone, wedge, and plane — supports fail-closed flat composition, direct + parametric pattern composition, compact bounded repetition, bounded axis-aligned grids with optional per-axis rotation and primitive-size progression, bounded reuse of existing MorphTile definitions, small deterministic repeat progressions for settings, rotation, primitive size, and definition-instance scalar/vector scale, and bounded in-place repetition when one of those progression rules actually changes authored target state. The caller-supplied recipe path remains available as an expert escape hatch.
+Turns bounded form intent into candidate MorphTile mesh matter. v0.18.0 recognizes MorphTile's explicit primitive vocabulary — box, sphere, cylinder, cone, wedge, and plane — supports fail-closed flat composition, direct + parametric pattern composition, compact bounded repetition, bounded axis-aligned grids with optional per-axis rotation, primitive-size, and definition-scale progression, bounded reuse of existing MorphTile definitions, small deterministic repeat progressions for settings, rotation, primitive size, and definition-instance scalar/vector scale, and bounded in-place repetition when one of those progression rules actually changes authored target state. The caller-supplied recipe path remains available as an expert escape hatch.
 
 ## Boundary answers
 
@@ -82,17 +82,19 @@ Required fields:
 - `step`: finite X/Y/Z spacing;
 - exactly one of `part` or `instance`.
 
-The total cell count must be 2..64. An active axis normally requires a non-zero translation step. From v0.16.0 an active axis may instead use `rot_step` for bounded rotation progression while remaining at one translation coordinate. From v0.17.0 a primitive grid axis may likewise use `size_step` while remaining translation-stationary. An active grid axis that has neither translation nor its own validated rotation/size progression still HOLDS.
+The total cell count must be 2..64. An active axis normally requires a non-zero translation step. From v0.16.0 an active axis may instead use `rot_step` for bounded rotation progression while remaining at one translation coordinate. From v0.17.0 a primitive grid axis may likewise use `size_step` while remaining translation-stationary. From v0.18.0 a definition-instance grid axis may use `scale_step` while remaining translation-stationary. An active grid axis that has neither translation nor its own validated rotation/size/scale progression still HOLDS.
 
 `rot_step` is an object keyed only by `x`, `y`, or `z`; each provided axis value must be exactly three finite rotation deltas and must change at least one rotation component. A provided rotation axis must have a cell count of at least 2.
 
 For primitive grids only, `size_step` uses the same axis-keyed shape. Each provided axis value is exactly three finite dimension deltas, must change at least one size component, and requires at least two cells on that axis. Every generated primitive size component across the complete Cartesian grid must remain finite and strictly greater than zero. Definition-instance grids HOLD `size_step`; reusable definitions use scale rather than primitive dimensions.
 
-Grid rotation and primitive size progression are compiled with the existing fixed loop variables `gx`, `gy`, and `gz`: each affected target component becomes its exact base plus the sum of the authored per-axis loop-index deltas. Single-cell axes remain omitted from the loop tree. Form proves the complete bounded generated position+rotation+size authored-state domain before emission. Non-finite expansion, non-positive generated primitive size, or two grid cells collapsing to the same combined authored position+rotation+size state HOLDS. The combined check catches cross-axis cancellation and permits a stationary translation axis only when that axis owns a bounded progression. This is authored-state distinctness, not a visual uniqueness claim for symmetric geometry.
+For definition-instance grids only, `scale_step` is also keyed only by `x`, `y`, or `z`. Each provided axis uses either one finite non-zero scalar delta or exactly three finite vector deltas with at least one changed component. All provided grid axes must use the same scalar/vector form. Scalar progression requires scalar `instance.scale` or omitted unit scale; vector progression requires vector `instance.scale` or omitted unit vector `[1,1,1]`. Scalar/vector coercion and mixed scalar/vector axis progression HOLD instead of being guessed. Every generated scale/component across the complete Cartesian domain must remain finite and strictly positive.
 
-The same bounded grid rule is reused inside `intent.compose`; it is intentionally not a second looser grid language. MorphTile already owns nested loop variables and expression evaluation, so this producer rule reuses the runtime substrate rather than materializing copied parts or exposing caller-authored expressions.
+Grid rotation, primitive size progression, and definition scale progression compile through the existing fixed loop variables `gx`, `gy`, and `gz`: each affected target component becomes its exact base plus the sum of the authored per-axis loop-index deltas. Single-cell axes remain omitted from the loop tree. Form proves the complete bounded generated authored-state domain before emission. Non-finite expansion, non-positive generated size/scale, or two grid cells collapsing to the same combined authored state HOLDS. The combined check catches cross-axis cancellation and permits a stationary translation axis only when that axis owns a bounded progression. This is authored-state distinctness, not a visual uniqueness claim for symmetric geometry or external definitions.
 
-Per-axis definition-setting or definition-scale grid progression is still not exposed. Those remain separate multidimensional semantics that require their own grounded rules rather than being silently inferred from repeat progression.
+Primitive `size_step` and definition `scale_step` are intentionally different target-specific vocabularies and therefore never apply to the same grid target. Either may coexist with `rot_step` for its valid target kind. The same bounded grid rule is reused inside `intent.compose`; it is intentionally not a second looser grid language. MorphTile already owns nested loop variables and expression evaluation, so this producer rule reuses the runtime substrate rather than materializing copied parts or exposing caller-authored expressions.
+
+Per-axis definition-setting grid progression is still not exposed. That remains a separate multidimensional semantic that requires its own grounded rule rather than being silently inferred from repeat setting progression.
 
 ## Bounded definition reuse
 
@@ -107,7 +109,7 @@ Each instance requires `use` and may add:
 
 Form Machine validates and normalizes the request, then emits MorphTile recipe `use` parts. It deliberately does **not** fetch definitions, duplicate their bodies, or claim dependency closure. Missing definitions and unsupported settings remain visible MorphTile runtime HOLDs. Assembly Machine remains the owner of definition/word closure and provenance when packaging complete kits.
 
-Repeat progression may change existing normalized definition settings, rotation or scalar/vector scale over the fixed repeat index. Grid progression may currently change only definition rotation over fixed `gx`/`gy`/`gz` indices; grid settings and scale remain fixed.
+Repeat progression may change existing normalized definition settings, rotation or scalar/vector scale over the fixed repeat index. Grid progression may change definition rotation and bounded scalar/vector scale over fixed `gx`/`gy`/`gz` indices; grid definition settings remain fixed.
 
 These capabilities belong in Form Machine rather than MorphTile core because MorphTile v0.4 already provides the universal recipe representation, definition `use`, expression-valued primitive size/transforms/settings/scale, nested loop composition and runtime resolution semantics.
 
@@ -121,12 +123,12 @@ Node 18 or later; zero runtime dependencies; no secrets or network required.
 
 ## Truth boundary
 
-- IMPLEMENTED: deterministic primitive normalization, bounded flat primitive composition, bounded direct + pattern composition, bounded repeat composition, bounded axis-aligned grid composition with bounded per-axis rotation and primitive-size progression, bounded definition-instance composition, bounded repeat setting/rotation/primitive-size/definition-scalar-or-vector-scale progression, bounded in-place repeat progression when another validated progression changes authored target state, the existing caller-recipe adapter, and the local envelope used by fixtures.
+- IMPLEMENTED: deterministic primitive normalization, bounded flat primitive composition, bounded direct + pattern composition, bounded repeat composition, bounded axis-aligned grid composition with bounded per-axis rotation, primitive-size, and definition-scale progression, bounded definition-instance composition, bounded repeat setting/rotation/primitive-size/definition-scalar-or-vector-scale progression, bounded in-place repeat progression when another validated progression changes authored target state, the existing caller-recipe adapter, and the local envelope used by fixtures.
 - TESTED: the claims named by the local test files once CI for the exact branch head is green.
 - RUNTIME TARGET: MorphTile commit `2bdf8eade1376055473b9cc1b11734b72a5566e5`.
 - RUNTIME BOUNDARY: caller-owned recipes remain an expert escape hatch; current pinned MorphTile runtime validation owns generic recipe-expression meaning, including `HOLD_RECIPE_NONFINITE_VALUE` when a present numeric expression evaluates non-finite. Finite authored Form primitive values can also become non-finite during derived mesh arithmetic; current pinned MorphTile owns that shared compiled-representation boundary and returns `HOLD_MESH_NONFINITE_VALUE` while clearing partial `P/T/K`.
 - EXPERIMENTAL: envelope v0.1 and every candidate schema in this foundation.
 - NOT TESTED: visual quality; arbitrary geometry generation; future MorphTile commits beyond the exact pin.
-- HELD: autonomous geometry synthesis, recursive/general nested loop/condition/expression recipe synthesis beyond the fixed rules, caller-authored expressions in bounded settings/transforms, scalar/vector scale coercion, multidimensional grid-setting/definition-scale progression, automatic definition discovery, visual proof, and production readiness.
+- HELD: autonomous geometry synthesis, recursive/general nested loop/condition/expression recipe synthesis beyond the fixed rules, caller-authored expressions in bounded settings/transforms, scalar/vector scale coercion, multidimensional grid-setting progression, automatic definition discovery, visual proof, and production readiness.
 
 This is a bounded creation machine, not evidence that MorphTile can autonomously manufacture MorphTile.

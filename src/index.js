@@ -10,12 +10,12 @@ const {
   normalizeDefinitionInstances
 } = require("./form-vocabulary");
 const { normalizeRepeatWithDistinctness } = require("./repeat-distinctness");
-const { normalizeGridWithSize } = require("./grid-size");
+const { normalizeGridWithScale } = require("./grid-scale");
 const {
   validateComposeIntentKeys,
   normalizeMixedComposition
 } = require("./mixed-composition");
-const MACHINE = { id: "axm.morphtile.machine.form", version: "0.17.0" };
+const MACHINE = { id: "axm.morphtile.machine.form", version: "0.18.0" };
 
 function holdResult(request, hold, suggested_missing_capability = null) {
   return result(request, MACHINE, "HOLD", {
@@ -58,7 +58,6 @@ function run(request) {
   if (!validIntent.ok) return holdResult(request, validIntent.hold);
 
   const compositionModes = ["recipe", "parts", "compose", "repeat", "grid", "instances"].filter((key) => intent[key] !== undefined);
-
   if (compositionModes.length > 1) {
     return holdResult(request, {
       code: "HOLD_FORM_COMPOSITION_AMBIGUOUS",
@@ -95,7 +94,7 @@ function run(request) {
     check = `bounded ${repeated.target_kind === "instance" ? "definition-instance" : "primitive"} repeat normalized into a compact MorphTile recipe (${repeated.data.repeat} instances)`;
     if (repeated.target_kind === "instance") warnings.push({ code: "DEFINITION_RUNTIME_RESOLUTION_REQUIRED" });
   } else if (mode === "grid") {
-    const grid = normalizeGridWithSize(intent.grid);
+    const grid = normalizeGridWithScale(intent.grid);
     if (!grid.ok) return holdResult(request, grid.hold);
     mesh = { type: "generated", source: null, data: { generator: "recipe", vars: {}, parts: [grid.data] } };
     check = `bounded ${grid.target_kind === "instance" ? "definition-instance" : "primitive"} grid normalized into compact MorphTile recipe loops (${grid.total_instances} instances)`;
