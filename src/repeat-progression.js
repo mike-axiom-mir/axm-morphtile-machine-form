@@ -14,6 +14,10 @@ function linearExpression(base, delta) {
   return delta === 0 ? base : ["+", base, ["*", ["var", INDEX_VAR], delta]];
 }
 
+function linearVectorExpression(base, deltas) {
+  return base.map((value, component) => linearExpression(value, deltas[component]));
+}
+
 function repeatValidationStep(step, activeProgression) {
   if (!Array.isArray(step) || step.length !== 3
       || step.some((value) => typeof value !== "number" || !Number.isFinite(value))) {
@@ -80,6 +84,7 @@ module.exports = {
   linearValue,
   linearVector,
   linearExpression,
+  linearVectorExpression,
   repeatValidationStep,
   proveFiniteRepeat,
   proveFiniteLinear,
