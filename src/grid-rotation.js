@@ -7,6 +7,7 @@ const {
   affineVector,
   affineExpression,
   axisAlignedVectorDeltas,
+  progressionValidationStep,
   proveFiniteDistinctCartesian
 } = require("./grid-progression");
 
@@ -77,14 +78,8 @@ function normalizeGridWithRotation(grid) {
   // Base grid validation remains authoritative. Private movement is inserted
   // only where a real bounded rotation progression can distinguish placements;
   // it is removed again before any candidate matter is returned.
-  if (Array.isArray(grid.counts) && grid.counts.length === 3 && Array.isArray(grid.step) && grid.step.length === 3) {
-    legacyGrid.step = grid.step.slice();
-    for (let axis = 0; axis < 3; axis += 1) {
-      if (grid.counts[axis] > 1 && legacyGrid.step[axis] === 0 && rotation.deltas[axis]) {
-        legacyGrid.step[axis] = 1;
-      }
-    }
-  }
+  const validationStep = progressionValidationStep(grid.step, grid.counts, rotation.deltas);
+  if (validationStep) legacyGrid.step = validationStep;
 
   const normalized = normalizeGrid(legacyGrid);
   if (!normalized.ok) return normalized;

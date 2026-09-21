@@ -64,6 +64,23 @@ function axisAlignedVectorDeltas(step, counts) {
   });
 }
 
+function progressionValidationStep(step, counts, deltas) {
+  if (!Array.isArray(step) || step.length !== 3
+      || !Array.isArray(counts) || counts.length !== 3
+      || !Array.isArray(deltas) || deltas.length !== 3) {
+    return null;
+  }
+
+  const validationStep = step.slice();
+  for (let axis = 0; axis < 3; axis += 1) {
+    const activeProgression = deltas[axis] !== null && deltas[axis] !== undefined;
+    if (counts[axis] > 1 && validationStep[axis] === 0 && activeProgression) {
+      validationStep[axis] = 1;
+    }
+  }
+  return validationStep;
+}
+
 function proveFiniteDistinctCartesian(counts, stateAt, validateState) {
   const seen = new Set();
   let failure = null;
@@ -101,5 +118,6 @@ module.exports = {
   affineExpression,
   affineScalarExpression,
   axisAlignedVectorDeltas,
+  progressionValidationStep,
   proveFiniteDistinctCartesian
 };
