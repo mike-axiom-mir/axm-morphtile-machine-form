@@ -1,11 +1,8 @@
 "use strict";
 
 const { normalizeGridWithSettings } = require("./grid-settings");
-const {
-  affineVector,
-  axisAlignedVectorDeltas,
-  proveFiniteDistinctCartesian
-} = require("./grid-progression");
+const { generatedPositionFromGrid } = require("./grid-position-state");
+const { proveFiniteDistinctCartesian } = require("./grid-progression");
 
 const PROGRESSION_KEYS = Object.freeze(["rot_step", "size_step", "scale_step", "with_step"]);
 
@@ -18,12 +15,9 @@ function hasAuthoredProgression(grid) {
 }
 
 function proveBaseGridPositions(grid) {
-  const target = grid.part !== undefined ? grid.part : grid.instance;
-  const basePos = Array.isArray(target.pos) ? target.pos : [0, 0, 0];
-  const deltas = axisAlignedVectorDeltas(grid.step, grid.counts);
   const proof = proveFiniteDistinctCartesian(
     grid.counts,
-    (index) => affineVector(basePos, index, deltas)
+    (index) => generatedPositionFromGrid(grid, index)
   );
 
   if (proof.ok) return proof;

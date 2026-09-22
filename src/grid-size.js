@@ -2,11 +2,14 @@
 
 const { normalizeGridWithRotation, rotationDeltasFromGrid } = require("./grid-rotation");
 const {
+  generatedPositionFromGrid,
+  positionExpressionStateFromGrid
+} = require("./grid-position-state");
+const {
   AXES,
   leafOf,
   affineVector,
   affineExpression,
-  axisAlignedVectorDeltas,
   progressionValidationStep,
   proveFiniteDistinctCartesian
 } = require("./grid-progression");
@@ -44,16 +47,13 @@ function normalizeSizeStep(value) {
 function proveDomain(grid, sizeDeltas) {
   const target = grid.part;
   const counts = grid.counts;
-  const step = grid.step;
-  const pos0 = Array.isArray(target.pos) ? target.pos : [0, 0, 0];
   const rot0 = Array.isArray(target.rot) ? target.rot : [0, 0, 0];
   const size0 = Array.isArray(target.size) ? target.size : [1, 1, 1];
   const rotDeltas = rotationDeltasFromGrid(grid);
-  const positionDeltas = axisAlignedVectorDeltas(step, counts);
   const proof = proveFiniteDistinctCartesian(
     counts,
     (index) => {
-      const pos = affineVector(pos0, index, positionDeltas);
+      const pos = generatedPositionFromGrid(grid, index);
       const rot = affineVector(rot0, index, rotDeltas);
       const size = affineVector(size0, index, sizeDeltas);
       return pos.concat(rot, size);
@@ -100,10 +100,8 @@ function normalizeGridWithSize(grid) {
   if (!closure.ok) return closure;
 
   const leaf = leafOf(normalized.data);
-  const pos0 = Array.isArray(grid.part.pos) ? grid.part.pos.slice() : [0, 0, 0];
   const size0 = Array.isArray(grid.part.size) ? grid.part.size.slice() : [1, 1, 1];
-  const positionDeltas = axisAlignedVectorDeltas(grid.step, grid.counts);
-  leaf.pos = pos0.map((base, component) => affineExpression(base, component, positionDeltas));
+  leaf.pos = positionExpressionStateFromGrid(grid);
   leaf.size = size0.map((base, component) => affineExpression(base, component, size.deltas));
   return normalized;
 }

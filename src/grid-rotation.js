@@ -2,11 +2,14 @@
 
 const { normalizeGrid } = require("./form-vocabulary");
 const {
+  generatedPositionFromGrid,
+  positionExpressionStateFromGrid
+} = require("./grid-position-state");
+const {
   AXES: AXIS_KEYS,
   leafOf,
   affineVector,
   affineExpression,
-  axisAlignedVectorDeltas,
   progressionValidationStep,
   proveFiniteDistinctCartesian
 } = require("./grid-progression");
@@ -55,10 +58,9 @@ function targetOf(grid) {
   return grid.part !== undefined ? grid.part : grid.instance;
 }
 
-function proveGeneratedStates(counts, step, basePos, baseRot, deltas) {
-  const positionDeltas = axisAlignedVectorDeltas(step, counts);
-  const proof = proveFiniteDistinctCartesian(counts, (index) => {
-    const pos = affineVector(basePos, index, positionDeltas);
+function proveGeneratedStates(grid, baseRot, deltas) {
+  const proof = proveFiniteDistinctCartesian(grid.counts, (index) => {
+    const pos = generatedPositionFromGrid(grid, index);
     const rot = affineVector(baseRot, index, deltas);
     return pos.concat(rot);
   });
@@ -91,7 +93,6 @@ function normalizeGridWithRotation(grid) {
   if (!normalized.ok) return normalized;
 
   const counts = grid.counts.slice();
-  const step = grid.step.slice();
   for (let axis = 0; axis < 3; axis += 1) {
     if (rotation.deltas[axis] && counts[axis] < 2) {
       return hold(
@@ -102,14 +103,12 @@ function normalizeGridWithRotation(grid) {
   }
 
   const target = targetOf(grid);
-  const basePos = Array.isArray(target.pos) ? target.pos.slice() : [0, 0, 0];
   const baseRot = Array.isArray(target.rot) ? target.rot.slice() : [0, 0, 0];
-  const closure = proveGeneratedStates(counts, step, basePos, baseRot, rotation.deltas);
+  const closure = proveGeneratedStates(grid, baseRot, rotation.deltas);
   if (!closure.ok) return closure;
 
   const leaf = leafOf(normalized.data);
-  const positionDeltas = axisAlignedVectorDeltas(step, counts);
-  leaf.pos = basePos.map((base, component) => affineExpression(base, component, positionDeltas));
+  leaf.pos = positionExpressionStateFromGrid(grid);
   leaf.rot = baseRot.map((base, component) => affineExpression(base, component, rotation.deltas));
 
   return normalized;
