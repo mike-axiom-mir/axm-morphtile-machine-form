@@ -6,10 +6,13 @@ const {
   positionExpressionStateFromGrid
 } = require("./grid-position-state");
 const {
+  rotationDeltasFromGrid,
+  generatedRotationFromGrid,
+  rotationExpressionStateFromGrid
+} = require("./grid-rotation-state");
+const {
   AXES: AXIS_KEYS,
   leafOf,
-  affineVector,
-  affineExpression,
   progressionValidationStep,
   proveFiniteDistinctCartesian
 } = require("./grid-progression");
@@ -48,20 +51,10 @@ function normalizeRotationStep(value) {
   return { ok: true, deltas };
 }
 
-function rotationDeltasFromGrid(grid) {
-  return AXIS_KEYS.map((axis) => grid && grid.rot_step && Array.isArray(grid.rot_step[axis])
-    ? grid.rot_step[axis].slice()
-    : null);
-}
-
-function targetOf(grid) {
-  return grid.part !== undefined ? grid.part : grid.instance;
-}
-
-function proveGeneratedStates(grid, baseRot, deltas) {
+function proveGeneratedStates(grid) {
   const proof = proveFiniteDistinctCartesian(grid.counts, (index) => {
     const pos = generatedPositionFromGrid(grid, index);
-    const rot = affineVector(baseRot, index, deltas);
+    const rot = generatedRotationFromGrid(grid, index);
     return pos.concat(rot);
   });
   if (proof.ok) return proof;
@@ -102,14 +95,12 @@ function normalizeGridWithRotation(grid) {
     }
   }
 
-  const target = targetOf(grid);
-  const baseRot = Array.isArray(target.rot) ? target.rot.slice() : [0, 0, 0];
-  const closure = proveGeneratedStates(grid, baseRot, rotation.deltas);
+  const closure = proveGeneratedStates(grid);
   if (!closure.ok) return closure;
 
   const leaf = leafOf(normalized.data);
   leaf.pos = positionExpressionStateFromGrid(grid);
-  leaf.rot = baseRot.map((base, component) => affineExpression(base, component, rotation.deltas));
+  leaf.rot = rotationExpressionStateFromGrid(grid);
 
   return normalized;
 }

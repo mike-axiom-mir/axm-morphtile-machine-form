@@ -1,8 +1,8 @@
 "use strict";
 
 const { normalizeGridWithScale } = require("./grid-scale");
+const { generatedRotationFromGrid } = require("./grid-rotation-state");
 const { generatedScaleFromGrid } = require("./grid-scale-state");
-const { rotationDeltasFromGrid } = require("./grid-rotation");
 const { generatedSettingValues, settingExpressionState } = require("./grid-setting-state");
 const {
   generatedPositionFromGrid,
@@ -11,7 +11,6 @@ const {
 const {
   AXES,
   leafOf,
-  affineVector,
   progressionValidationStep,
   proveFiniteDistinctCartesian
 } = require("./grid-progression");
@@ -69,12 +68,10 @@ function normalizeSettingSteps(value) {
 
 function proveDomain(grid, deltas, baseSettings) {
   const counts = grid.counts;
-  const rot0 = Array.isArray(grid.instance.rot) ? grid.instance.rot : [0, 0, 0];
-  const rotDeltas = rotationDeltasFromGrid(grid);
 
   const proof = proveFiniteDistinctCartesian(counts, (index) => {
     const pos = generatedPositionFromGrid(grid, index);
-    const rot = affineVector(rot0, index, rotDeltas);
+    const rot = generatedRotationFromGrid(grid, index);
     const scale = generatedScaleFromGrid(grid, index);
     const settings = generatedSettingValues(baseSettings, deltas, index);
     return pos.concat(rot, scale, settings);
