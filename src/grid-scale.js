@@ -2,7 +2,10 @@
 
 const { normalizeGridWithSize } = require("./grid-size");
 const { generatedRotationFromGrid } = require("./grid-rotation-state");
-const { generatedScaleFromGrid } = require("./grid-scale-state");
+const {
+  generatedScaleFromGrid,
+  scaleExpressionStateFromGrid
+} = require("./grid-scale-state");
 const {
   generatedPositionFromGrid,
   positionExpressionStateFromGrid
@@ -10,8 +13,6 @@ const {
 const {
   AXES,
   leafOf,
-  affineExpression,
-  affineScalarExpression,
   progressionValidationStep,
   proveFiniteDistinctCartesian
 } = require("./grid-progression");
@@ -71,17 +72,12 @@ function proveDomain(grid, scale) {
   const target = grid.instance;
   const counts = grid.counts;
 
-  let baseScale;
   if (scale.kind === "scalar") {
     if (Array.isArray(target.scale)) {
       return hold("HOLD_FORM_GRID_INVALID", "scalar grid.scale_step requires scalar instance.scale or omitted unit scale");
     }
-    baseScale = target.scale === undefined ? 1 : target.scale;
-  } else {
-    if (target.scale !== undefined && !Array.isArray(target.scale)) {
-      return hold("HOLD_FORM_GRID_INVALID", "vector grid.scale_step requires vector instance.scale or omitted unit scale");
-    }
-    baseScale = target.scale === undefined ? [1, 1, 1] : target.scale.slice();
+  } else if (target.scale !== undefined && !Array.isArray(target.scale)) {
+    return hold("HOLD_FORM_GRID_INVALID", "vector grid.scale_step requires vector instance.scale or omitted unit scale");
   }
 
   const scaleWidth = scale.kind === "scalar" ? 1 : 3;
@@ -105,7 +101,7 @@ function proveDomain(grid, scale) {
     }
     return hold("HOLD_FORM_GRID_INVALID", `grid position/rotation/scale progression produces a duplicate authored state at ${where}`);
   }
-  return { ok: true, baseScale };
+  return { ok: true };
 }
 
 function normalizeGridWithScale(grid) {
@@ -138,11 +134,7 @@ function normalizeGridWithScale(grid) {
 
   const leaf = leafOf(normalized.data);
   leaf.pos = positionExpressionStateFromGrid(grid);
-  if (scale.kind === "scalar") {
-    leaf.scale = affineScalarExpression(closure.baseScale, scale.deltas);
-  } else {
-    leaf.scale = closure.baseScale.map((base, component) => affineExpression(base, component, scale.deltas));
-  }
+  leaf.scale = scaleExpressionStateFromGrid(grid);
   return normalized;
 }
 
