@@ -51,10 +51,6 @@ function normalizeRotationStep(value) {
   return { ok: true, deltas };
 }
 
-function targetOf(grid) {
-  return grid.part !== undefined ? grid.part : grid.instance;
-}
-
 function proveGeneratedStates(grid) {
   const proof = proveFiniteDistinctCartesian(grid.counts, (index) => {
     const pos = generatedPositionFromGrid(grid, index);
