@@ -1,7 +1,7 @@
 "use strict";
 
 const { normalizeGridWithSize } = require("./grid-size");
-const { rotationDeltasFromGrid } = require("./grid-rotation");
+const { generatedRotationFromGrid } = require("./grid-rotation-state");
 const { generatedScaleFromGrid } = require("./grid-scale-state");
 const {
   generatedPositionFromGrid,
@@ -10,7 +10,6 @@ const {
 const {
   AXES,
   leafOf,
-  affineVector,
   affineExpression,
   affineScalarExpression,
   progressionValidationStep,
@@ -71,8 +70,6 @@ function normalizeScaleSteps(value) {
 function proveDomain(grid, scale) {
   const target = grid.instance;
   const counts = grid.counts;
-  const rot0 = Array.isArray(target.rot) ? target.rot : [0, 0, 0];
-  const rotDeltas = rotationDeltasFromGrid(grid);
 
   let baseScale;
   if (scale.kind === "scalar") {
@@ -92,7 +89,7 @@ function proveDomain(grid, scale) {
     counts,
     (index) => {
       const pos = generatedPositionFromGrid(grid, index);
-      const rot = affineVector(rot0, index, rotDeltas);
+      const rot = generatedRotationFromGrid(grid, index);
       const generatedScale = generatedScaleFromGrid(grid, index);
       return pos.concat(rot, generatedScale);
     },
