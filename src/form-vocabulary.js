@@ -1,6 +1,7 @@
 "use strict";
 
-const { linearValue, linearExpression, proveFiniteRepeat } = require("./repeat-progression");
+const { linearValue, proveFiniteRepeat } = require("./repeat-progression");
+const { positionState, positionExpressionState } = require("./repeat-position-state");
 const { settingExpressionState } = require("./repeat-setting-state");
 const { VARS, affineExpression, axisAlignedVectorDeltas } = require("./grid-progression");
 
@@ -310,11 +311,11 @@ function normalizePrimitiveRepeat(repeat) {
     : normalizeDefinitionInstance(repeat.instance, "repeat.instance");
   if (!target.ok) return target;
 
-  const basePos = target.data.pos || [0, 0, 0];
+  const position = positionState(target.data, step.value);
   for (let axis = 0; axis < 3; axis++) {
     const closure = finiteRepeatProgression(
-      basePos[axis],
-      step.value[axis],
+      position.base[axis],
+      position.delta[axis],
       count.value,
       `repeat position axis ${axis}`
     );
@@ -322,7 +323,7 @@ function normalizePrimitiveRepeat(repeat) {
   }
 
   const repeatedTarget = { ...target.data };
-  repeatedTarget.pos = basePos.map((base, axis) => linearExpression(base, step.value[axis]));
+  repeatedTarget.pos = positionExpressionState(target.data, step.value);
 
   if (repeat.with_step !== undefined) {
     if (targetModes[0] !== "instance") {
