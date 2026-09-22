@@ -2,8 +2,12 @@
 
 const { linearValue, proveFiniteRepeat } = require("./repeat-progression");
 const { positionState, positionExpressionState } = require("./repeat-position-state");
+const {
+  positionState: gridPositionState,
+  positionExpressionState: gridPositionExpressionState
+} = require("./grid-position-state");
 const { settingExpressionState } = require("./repeat-setting-state");
-const { VARS, affineExpression, axisAlignedVectorDeltas } = require("./grid-progression");
+const { VARS } = require("./grid-progression");
 
 const PRIMITIVES = Object.freeze(["box", "sphere", "cylinder", "cone", "wedge", "plane"]);
 const RADIAL = new Set(["sphere", "cylinder", "cone"]);
@@ -391,11 +395,11 @@ function normalizeGrid(grid) {
     : normalizeDefinitionInstance(grid.instance, "grid.instance");
   if (!target.ok) return target;
 
-  const basePos = target.data.pos || [0, 0, 0];
+  const position = gridPositionState(target.data, step.value, counts);
   for (let axis = 0; axis < 3; axis++) {
     const closure = finiteLinearProgression(
-      basePos[axis],
-      step.value[axis],
+      position.base[axis],
+      position.step[axis],
       counts[axis],
       `grid position axis ${axis}`,
       "HOLD_FORM_GRID_INVALID"
@@ -403,9 +407,8 @@ function normalizeGrid(grid) {
     if (!closure.ok) return closure;
   }
 
-  const positionDeltas = axisAlignedVectorDeltas(step.value, counts);
   const gridTarget = { ...target.data };
-  gridTarget.pos = basePos.map((base, component) => affineExpression(base, component, positionDeltas));
+  gridTarget.pos = gridPositionExpressionState(target.data, step.value, counts);
 
   let body = [gridTarget];
   for (let axis = 2; axis >= 0; axis--) {
